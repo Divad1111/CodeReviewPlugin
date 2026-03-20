@@ -10,6 +10,7 @@ import { AuditSession } from '../svn/types';
  * Create a new audit session.
  */
 export function createSession(
+  name: string,
   repoUrl: string,
   startDate: string,
   endDate: string,
@@ -19,6 +20,7 @@ export function createSession(
   const db = getDatabase();
   const session: AuditSession = {
     id: crypto.randomUUID(),
+    name: name || 'Untitled Session',
     createdAt: new Date().toISOString(),
     repoUrl,
     startDate,
@@ -27,9 +29,9 @@ export function createSession(
   };
 
   db.run(
-    `INSERT INTO Sessions (id, created_at, repo_url, start_date, end_date, authors)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [session.id, session.createdAt, session.repoUrl, session.startDate, session.endDate, JSON.stringify(session.authors)]
+    `INSERT INTO Sessions (id, name, created_at, repo_url, start_date, end_date, authors)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [session.id, session.name, session.createdAt, session.repoUrl, session.startDate, session.endDate, JSON.stringify(session.authors)]
   );
 
   saveDatabase(storagePath);
@@ -37,21 +39,34 @@ export function createSession(
 }
 
 /**
+ * Rename an existing audit session.
+ */
+export function renameSession(sessionId: string, newName: string, storagePath: string): void {
+  const db = getDatabase();
+  db.run(
+    'UPDATE Sessions SET name = ? WHERE id = ?',
+    [newName, sessionId]
+  );
+  saveDatabase(storagePath);
+}
+
+/**
  * Get all sessions, ordered by creation date descending.
  */
 export function getSessions(): AuditSession[] {
   const db = getDatabase();
-  const results = db.exec('SELECT id, created_at, repo_url, start_date, end_date, authors FROM Sessions ORDER BY created_at DESC');
+  const results = db.exec('SELECT id, name, created_at, repo_url, start_date, end_date, authors FROM Sessions ORDER BY created_at DESC');
 
   if (results.length === 0) {return [];}
 
   return results[0].values.map((row: any[]) => ({
     id: row[0] as string,
-    createdAt: row[1] as string,
-    repoUrl: row[2] as string,
-    startDate: row[3] as string,
-    endDate: row[4] as string,
-    authors: JSON.parse(row[5] as string),
+    name: row[1] as string,
+    createdAt: row[2] as string,
+    repoUrl: row[3] as string,
+    startDate: row[4] as string,
+    endDate: row[5] as string,
+    authors: JSON.parse(row[6] as string),
   }));
 }
 
@@ -61,7 +76,7 @@ export function getSessions(): AuditSession[] {
 export function getSessionById(sessionId: string): AuditSession | null {
   const db = getDatabase();
   const results = db.exec(
-    'SELECT id, created_at, repo_url, start_date, end_date, authors FROM Sessions WHERE id = ?',
+    'SELECT id, name, created_at, repo_url, start_date, end_date, authors FROM Sessions WHERE id = ?',
     [sessionId]
   );
 
@@ -70,11 +85,12 @@ export function getSessionById(sessionId: string): AuditSession | null {
   const row = results[0].values[0];
   return {
     id: row[0] as string,
-    createdAt: row[1] as string,
-    repoUrl: row[2] as string,
-    startDate: row[3] as string,
-    endDate: row[4] as string,
-    authors: JSON.parse(row[5] as string),
+    name: row[1] as string,
+    createdAt: row[2] as string,
+    repoUrl: row[3] as string,
+    startDate: row[4] as string,
+    endDate: row[5] as string,
+    authors: JSON.parse(row[6] as string),
   };
 }
 

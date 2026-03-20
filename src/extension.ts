@@ -16,6 +16,7 @@ import { addCommentCommand } from './commands/addComment';
 import { markReviewedCommand, markFlaggedCommand } from './commands/markReviewed';
 import { exportReportCommand } from './commands/exportReport';
 import { deleteSession } from './storage/sessionRepo';
+import { renameSessionCommand } from './commands/renameSession';
 import { ReviewLog } from './svn/types';
 import { AuditTreeItem } from './ui/auditTreeProvider';
 
@@ -64,7 +65,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // New Session
   context.subscriptions.push(
     vscode.commands.registerCommand('svnAudit.newSession', () =>
-      newSessionCommand(context.extensionUri, svnService, treeProvider, storagePath)
+      newSessionCommand(context.extensionUri, svnService, treeProvider, treeView, storagePath)
     )
   );
 
@@ -126,6 +127,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.window.showInformationMessage('Session deleted.');
       }
     })
+  );
+
+  // Rename Session
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.renameSession', (node) =>
+      renameSessionCommand(node, treeProvider, storagePath)
+    )
   );
 
   console.log('[SVN Audit] Extension activated successfully.');

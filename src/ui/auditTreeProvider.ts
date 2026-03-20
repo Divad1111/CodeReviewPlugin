@@ -19,7 +19,8 @@ export class AuditTreeItem extends vscode.TreeItem {
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly sessionId?: string,
     public readonly author?: string,
-    public readonly reviewLog?: ReviewLog
+    public readonly reviewLog?: ReviewLog,
+    public customTooltip?: string
   ) {
     super(label, collapsibleState);
     this.contextValue = itemType;
@@ -30,7 +31,7 @@ export class AuditTreeItem extends vscode.TreeItem {
     switch (this.itemType) {
       case 'session': {
         this.iconPath = new vscode.ThemeIcon('folder-library');
-        this.tooltip = `Session: ${this.label}`;
+        this.tooltip = this.customTooltip || `Session: ${this.label}`;
         break;
       }
       case 'person': {
@@ -75,8 +76,14 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
   private _onDidChangeTreeData = new vscode.EventEmitter<AuditTreeItem | undefined | null>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
+  private sessionItemsMap: Map<string, AuditTreeItem> = new Map();
+
   refresh(): void {
     this._onDidChangeTreeData.fire(undefined);
+  }
+
+  findSessionItem(sessionId: string): AuditTreeItem | undefined {
+    return this.sessionItemsMap.get(sessionId);
   }
 
   getTreeItem(element: AuditTreeItem): vscode.TreeItem {
@@ -100,15 +107,27 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
 
   private async getSessionNodes(): Promise<AuditTreeItem[]> {
     const sessions = getSessions();
+    this.sessionItemsMap.clear();
+
     return sessions.map((s) => {
-      const dateStr = new Date(s.createdAt).toLocaleDateString();
-      const label = `${dateStr} — ${s.authors.join(', ')}`;
-      return new AuditTreeItem(
+      // 1. Short name for tree: "Name + EndDate"
+      const label = `${s.name} (${s.endDate})`;
+      
+      // 2. Long name for tooltip: "Name + StartDate + EndDate + Authors"
+      const authorList = s.authors.join(', ');
+      const tooltip = `${s.name}\n${s.startDate} ↔ ${s.endDate}\nAuthors: ${authorList}`;
+      
+      const item = new AuditTreeItem(
         label,
         'session',
         vscode.TreeItemCollapsibleState.Expanded,
-        s.id
+        s.id,
+        undefined,
+        undefined,
+        tooltip
       );
+      this.sessionItemsMap.set(s.id, item);
+      return item;
     });
   }
 

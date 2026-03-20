@@ -81,6 +81,7 @@ function runMigrations(database: Database): void {
   database.run(`
     CREATE TABLE IF NOT EXISTS Sessions (
       id TEXT PRIMARY KEY,
+      name TEXT NOT NULL DEFAULT 'Untitled Session',
       created_at TEXT NOT NULL,
       repo_url TEXT NOT NULL,
       start_date TEXT NOT NULL,
@@ -88,6 +89,15 @@ function runMigrations(database: Database): void {
       authors TEXT NOT NULL
     )
   `);
+
+  // Migration for existing databases that don't have the 'name' column
+  try {
+    // Try to query the name column, if it fails, the column doesn't exist
+    database.exec('SELECT name FROM Sessions LIMIT 1');
+  } catch (e) {
+    // Column doesn't exist, add it
+    database.run('ALTER TABLE Sessions ADD COLUMN name TEXT NOT NULL DEFAULT "Untitled Session"');
+  }
 
   database.run(`
     CREATE TABLE IF NOT EXISTS ReviewLogs (

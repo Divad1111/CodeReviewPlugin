@@ -13,7 +13,7 @@ import { getHistory } from '../storage/historyRepo';
  */
 export function createNewSessionPanel(
   extensionUri: vscode.Uri,
-  onSubmit: (data: { repoUrl: string; authors: string; startDate: string; endDate: string; username?: string; password?: string }) => void
+  onSubmit: (data: { name: string; repoUrl: string; authors: string; startDate: string; endDate: string; username?: string; password?: string }) => void
 ): vscode.WebviewPanel {
   const panel = vscode.window.createWebviewPanel(
     'svnAuditNewSession',
@@ -273,6 +273,11 @@ function getWebviewContent(
     <h1>New Audit Session</h1>
 
     <div class="form-group">
+      <label>Session Name</label>
+      <input type="text" id="sessionName" placeholder="My Code Review" />
+    </div>
+
+    <div class="form-group">
       <label>SVN Repository URL</label>
       <input type="text" id="repoUrl" placeholder="svn://server/repo/trunk" />
       <div class="error-msg" id="repoUrlError">Repository URL is required</div>
@@ -427,6 +432,7 @@ function getWebviewContent(
         authorInput.value = '';
       }
 
+      const sessionName = document.getElementById('sessionName').value.trim();
       const repoUrl = document.getElementById('repoUrl').value.trim();
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
@@ -448,7 +454,7 @@ function getWebviewContent(
 
       vscode.postMessage({
         command: 'submit',
-        data: { repoUrl, authors: tags.join(', '), startDate, endDate, username, password }
+        data: { name: sessionName, repoUrl, authors: tags.join(', '), startDate, endDate, username, password }
       });
     });
 

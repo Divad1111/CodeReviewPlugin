@@ -69,6 +69,11 @@
         "command": "svnAudit.deleteSession",
         "title": "SVN Audit: Delete Session",
         "icon": "$(trash)"
+      },
+      {
+        "command": "svnAudit.renameSession",
+        "title": "SVN Audit: Rename Session",
+        "icon": "$(edit)"
       }
     ],
     "menus": {
@@ -101,9 +106,14 @@
           "group": "inline@2"
         },
         {
+          "command": "svnAudit.renameSession",
+          "when": "view == svnAuditSidebar && viewItem == session",
+          "group": "inline@1"
+        },
+        {
           "command": "svnAudit.deleteSession",
           "when": "view == svnAuditSidebar && viewItem == session",
-          "group": "inline@3"
+          "group": "inline@2"
         }
       ],
       "editor/context": [

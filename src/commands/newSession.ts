@@ -17,12 +17,13 @@ export async function newSessionCommand(
   extensionUri: vscode.Uri,
   svnService: SvnService,
   treeProvider: AuditTreeDataProvider,
+  treeView: vscode.TreeView<any>,
   storagePath: string
 ): Promise<void> {
 
   // Open the webview panel for session config
   createNewSessionPanel(extensionUri, async (data) => {
-    const { command, repoUrl, authors: authorsStr, startDate, endDate, username, password, type, value } = data as any;
+    const { command, name, repoUrl, authors: authorsStr, startDate, endDate, username, password, type, value } = data as any;
 
     if (command === 'deleteHistory') {
       import('../storage/historyRepo').then(repo => repo.deleteHistory(type, value, storagePath));
@@ -75,7 +76,7 @@ export async function newSessionCommand(
           progress.report({ message: 'Creating session...', increment: 30 });
 
           // Create session
-          const session = createSession(repoUrl, startDate, endDate, authors, storagePath);
+          const session = createSession(name, repoUrl, startDate, endDate, authors, storagePath);
 
           // Create review logs for each author's files
           for (const [, changes] of authorMap) {
@@ -95,6 +96,14 @@ export async function newSessionCommand(
 
           // Refresh tree
           treeProvider.refresh();
+
+          // Wait a tick for the tree provider to register the new item
+          setTimeout(() => {
+            const item = treeProvider.findSessionItem(session.id);
+            if (item) {
+              treeView.reveal(item, { select: true, focus: true, expand: true });
+            }
+          }, 100);
 
           vscode.window.showInformationMessage(
             `SVN Audit: Session created with ${authorMap.size} author(s) and ${Array.from(authorMap.values()).reduce((sum, a) => sum + a.files.length, 0)} file(s).`

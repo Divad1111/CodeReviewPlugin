@@ -67,6 +67,7 @@ export interface OverwrittenLine {
 /** Session data for a review batch */
 export interface AuditSession {
   id: string;
+  name: string; // User-defined name
   createdAt: string;
   repoUrl: string;
   startDate: string;
