@@ -1,0 +1,141 @@
+{
+  "name": "svn-audit-assistant",
+  "displayName": "SVN Audit Assistant",
+  "description": "SVN 增量代码审计助手 — 按人员+时间段聚合修改，支持行级批注、覆盖检测和 Markdown 报表导出",
+  "version": "0.1.0",
+  "publisher": "codereview",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "svnAuditContainer",
+          "title": "SVN Audit",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "svnAuditContainer": [
+        {
+          "id": "svnAuditSidebar",
+          "name": "Audit Sessions",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "svnAudit.newSession",
+        "title": "SVN Audit: New Review Session",
+        "icon": "$(add)"
+      },
+      {
+        "command": "svnAudit.refresh",
+        "title": "SVN Audit: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "svnAudit.exportReport",
+        "title": "SVN Audit: Export Report",
+        "icon": "$(export)"
+      },
+      {
+        "command": "svnAudit.addComment",
+        "title": "SVN Audit: Add Comment"
+      },
+      {
+        "command": "svnAudit.markReviewed",
+        "title": "SVN Audit: Mark as Reviewed",
+        "icon": "$(check)"
+      },
+      {
+        "command": "svnAudit.markFlagged",
+        "title": "SVN Audit: Mark as Flagged",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "svnAudit.openDiff",
+        "title": "SVN Audit: Open Diff View"
+      },
+      {
+        "command": "svnAudit.deleteSession",
+        "title": "SVN Audit: Delete Session",
+        "icon": "$(trash)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "svnAudit.newSession",
+          "when": "view == svnAuditSidebar",
+          "group": "navigation@1"
+        },
+        {
+          "command": "svnAudit.refresh",
+          "when": "view == svnAuditSidebar",
+          "group": "navigation@2"
+        },
+        {
+          "command": "svnAudit.exportReport",
+          "when": "view == svnAuditSidebar",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "svnAudit.markReviewed",
+          "when": "view == svnAuditSidebar && viewItem == file",
+          "group": "inline@1"
+        },
+        {
+          "command": "svnAudit.markFlagged",
+          "when": "view == svnAuditSidebar && viewItem == file",
+          "group": "inline@2"
+        },
+        {
+          "command": "svnAudit.deleteSession",
+          "when": "view == svnAuditSidebar && viewItem == session",
+          "group": "inline@3"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "svnAudit.addComment",
+          "when": "resourceScheme == svn-audit",
+          "group": "svnAudit@1"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "compile": "tsc -p ./",
+    "lint": "eslint src --ext ts",
+    "test": "jest"
+  },
+  "dependencies": {
+    "sql.js": "^1.10.3",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.11.0",
+    "@types/xml2js": "^0.4.14",
+    "typescript": "^5.3.3",
+    "esbuild": "^0.20.0",
+    "@vscode/test-electron": "^2.3.8",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0"
+  }
+}

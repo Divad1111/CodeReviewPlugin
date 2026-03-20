@@ -1,0 +1,10 @@
+.vscode/**
+.vscode-test/**
+src/**
+node_modules/**
+!node_modules/sql.js/dist/sql-wasm.wasm
+esbuild.js
+tsconfig.json
+**/*.ts
+**/*.map
+.gitignore

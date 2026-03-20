@@ -1,0 +1,140 @@
+/**
+ * SQLite database initialization and management using sql.js (WASM).
+ */
+
+import * as path from 'path';
+import * as fs from 'fs';
+import initSqlJs, { Database } from 'sql.js';
+
+let db: Database | null = null;
+
+/**
+ * Initialize the SQLite database.
+ * Creates or opens svn_audit.db in the given storage directory.
+ */
+export async function initDatabase(storagePath: string): Promise<Database> {
+  const SQL = await initSqlJs({
+    locateFile: (file: string) => {
+      // In production, the WASM file is in the same directory as extension.js
+      return path.join(__dirname, file);
+    },
+  });
+
+  const dbPath = path.join(storagePath, 'svn_audit.db');
+
+  // Ensure directory exists
+  fs.mkdirSync(storagePath, { recursive: true });
+
+  // Load existing database or create new
+  if (fs.existsSync(dbPath)) {
+    const buffer = fs.readFileSync(dbPath);
+    db = new SQL.Database(buffer);
+  } else {
+    db = new SQL.Database();
+  }
+
+  // Run migrations
+  runMigrations(db);
+
+  // Save to disk
+  saveDatabase(storagePath);
+
+  return db;
+}
+
+/**
+ * Get the current database instance.
+ * Throws if not initialized.
+ */
+export function getDatabase(): Database {
+  if (!db) {
+    throw new Error('Database not initialized. Call initDatabase() first.');
+  }
+  return db;
+}
+
+/**
+ * Save the in-memory database to disk.
+ */
+export function saveDatabase(storagePath: string): void {
+  if (!db) {return;}
+  const data = db.export();
+  const buffer = Buffer.from(data);
+  const dbPath = path.join(storagePath, 'svn_audit.db');
+  fs.writeFileSync(dbPath, buffer);
+}
+
+/**
+ * Close the database connection.
+ */
+export function closeDatabase(): void {
+  if (db) {
+    db.close();
+    db = null;
+  }
+}
+
+/**
+ * Run database schema migrations.
+ */
+function runMigrations(database: Database): void {
+  database.run(`
+    CREATE TABLE IF NOT EXISTS Sessions (
+      id TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL,
+      repo_url TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      authors TEXT NOT NULL
+    )
+  `);
+
+  database.run(`
+    CREATE TABLE IF NOT EXISTS ReviewLogs (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      author TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      reviewed_at TEXT,
+      base_revision INTEGER,
+      end_revision INTEGER,
+      FOREIGN KEY (session_id) REFERENCES Sessions(id) ON DELETE CASCADE
+    )
+  `);
+
+  database.run(`
+    CREATE TABLE IF NOT EXISTS Comments (
+      id TEXT PRIMARY KEY,
+      review_log_id TEXT NOT NULL,
+      line_number INTEGER NOT NULL,
+      code_snippet TEXT,
+      comment_text TEXT NOT NULL,
+      revision TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (review_log_id) REFERENCES ReviewLogs(id) ON DELETE CASCADE
+    )
+  `);
+
+  // InputHistory: remember previously used URLs and authors for autocomplete
+  database.run(`
+    CREATE TABLE IF NOT EXISTS InputHistory (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      value TEXT NOT NULL,
+      used_at TEXT NOT NULL,
+      UNIQUE(type, value)
+    )
+  `);
+
+  // Create indexes for common queries
+  database.run(`
+    CREATE INDEX IF NOT EXISTS idx_reviewlogs_session
+    ON ReviewLogs(session_id)
+  `);
+
+  database.run(`
+    CREATE INDEX IF NOT EXISTS idx_comments_reviewlog
+    ON Comments(review_log_id)
+  `);
+}
