@@ -45,3 +45,19 @@ export function getHistory(type: 'repo_url' | 'author'): string[] {
   if (results.length === 0) { return []; }
   return results[0].values.map((row: any[]) => row[0] as string);
 }
+
+/**
+ * Delete a historical value from history.
+ */
+export function deleteHistory(
+  type: 'repo_url' | 'author',
+  value: string,
+  storagePath: string
+): void {
+  const db = getDatabase();
+  db.run(
+    'DELETE FROM InputHistory WHERE type = ? AND value = ?',
+    [type, value]
+  );
+  saveDatabase(storagePath);
+}

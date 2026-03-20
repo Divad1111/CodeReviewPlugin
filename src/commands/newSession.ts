@@ -22,8 +22,14 @@ export async function newSessionCommand(
 
   // Open the webview panel for session config
   createNewSessionPanel(extensionUri, async (data) => {
-    const { repoUrl, authors: authorsStr, startDate, endDate, username, password } = data;
-    const authors = authorsStr.split(',').map(a => a.trim()).filter(a => a.length > 0);
+    const { command, repoUrl, authors: authorsStr, startDate, endDate, username, password, type, value } = data as any;
+
+    if (command === 'deleteHistory') {
+      import('../storage/historyRepo').then(repo => repo.deleteHistory(type, value, storagePath));
+      return;
+    }
+
+    const authors = authorsStr.split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0);
 
     if (authors.length === 0 || !repoUrl) {
       vscode.window.showErrorMessage('Invalid inputs from the new session form.');
@@ -32,7 +38,7 @@ export async function newSessionCommand(
 
     // Save inputs to history
     recordHistory('repo_url', repoUrl, storagePath);
-    authors.forEach((author) => recordHistory('author', author, storagePath));
+    authors.forEach((author: string) => recordHistory('author', author, storagePath));
 
     // Fetch SVN log with progress
     await vscode.window.withProgress(

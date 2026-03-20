@@ -41,6 +41,9 @@ export function createNewSessionPanel(
       panel.dispose();
     } else if (message.command === 'cancel') {
       panel.dispose();
+    } else if (message.command === 'deleteHistory') {
+      // Pass the delete command to the extension, but don't close the panel
+      onSubmit(message as any); 
     }
   });
 
@@ -53,8 +56,7 @@ function getWebviewContent(
   defaultStart: string,
   defaultEnd: string
 ): string {
-  const repoOptionsHtml = repoHistory.map(u => `<option value="${escapeHtml(u)}">`).join('\n');
-  const authorTagsHtml = authorHistory.map(a => `"${escapeHtml(a)}"`).join(', ');
+  // Use suggestion chips for both, rather than datalist, to support deletion
 
   return /*html*/ `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -200,17 +202,29 @@ function getWebviewContent(
       gap: 4px;
     }
     .suggestion-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
       font-size: 11px;
-      padding: 2px 8px;
+      padding: 3px 8px;
       background: var(--btn-secondary-bg);
       color: var(--btn-secondary-fg);
-      border: none;
-      border-radius: 10px;
+      border: 1px solid var(--input-border);
+      border-radius: 12px;
       cursor: pointer;
-      opacity: 0.8;
-      transition: opacity 0.1s;
+      transition: background 0.15s;
     }
-    .suggestion-chip:hover { opacity: 1; }
+    .suggestion-chip:hover { background: var(--btn-hover); color: var(--btn-fg); }
+    .suggestion-chip .chip-delete {
+      font-size: 14px;
+      line-height: 1;
+      opacity: 0.5;
+      padding-left: 2px;
+    }
+    .suggestion-chip .chip-delete:hover {
+      opacity: 1;
+      color: var(--error-fg);
+    }
     .suggestion-label {
       font-size: 11px;
       opacity: 0.6;
@@ -260,11 +274,16 @@ function getWebviewContent(
 
     <div class="form-group">
       <label>SVN Repository URL</label>
-      <input type="text" id="repoUrl" placeholder="svn://server/repo/trunk" list="repoHistory" />
-      <datalist id="repoHistory">
-        ${repoOptionsHtml}
-      </datalist>
+      <input type="text" id="repoUrl" placeholder="svn://server/repo/trunk" />
       <div class="error-msg" id="repoUrlError">Repository URL is required</div>
+      ${repoHistory.length > 0 ? `
+      <div class="suggestions" id="repoSuggestions">
+        <span class="suggestion-label">History:</span>
+        ${repoHistory.map(u => `<span class="suggestion-chip" data-repo="${escapeHtml(u)}">
+          <span class="chip-text">${escapeHtml(u)}</span>
+          <span class="chip-delete" title="Delete from history" data-del-repo="${escapeHtml(u)}">×</span>
+        </span>`).join('')}
+      </div>` : ''}
     </div>
 
     <div class="form-group row date-row">
@@ -287,7 +306,10 @@ function getWebviewContent(
       ${authorHistory.length > 0 ? `
       <div class="suggestions" id="authorSuggestions">
         <span class="suggestion-label">History:</span>
-        ${authorHistory.map(a => `<button class="suggestion-chip" data-author="${escapeHtml(a)}">${escapeHtml(a)}</button>`).join('')}
+        ${authorHistory.map(a => `<span class="suggestion-chip" data-author="${escapeHtml(a)}">
+          <span class="chip-text">${escapeHtml(a)}</span>
+          <span class="chip-delete" title="Delete from history" data-del-author="${escapeHtml(a)}">×</span>
+        </span>`).join('')}
       </div>` : ''}
     </div>
 
@@ -368,11 +390,32 @@ function getWebviewContent(
       }
     });
 
-    // Suggestion chips
+    // Suggestion chips (Repo & Authors)
     document.querySelectorAll('.suggestion-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        addTag(chip.dataset.author);
-        authorInput.focus();
+      chip.addEventListener('click', (e) => {
+        // Handle deletion
+        if (e.target.classList.contains('chip-delete')) {
+          e.stopPropagation();
+          const delRepo = e.target.dataset.delRepo;
+          const delAuthor = e.target.dataset.delAuthor;
+          
+          if (delRepo) {
+            vscode.postMessage({ command: 'deleteHistory', type: 'repo_url', value: delRepo });
+          } else if (delAuthor) {
+            vscode.postMessage({ command: 'deleteHistory', type: 'author', value: delAuthor });
+          }
+          chip.remove(); // Remove from UI temporarily
+          return;
+        }
+
+        // Handle addition
+        if (chip.dataset.author) {
+          addTag(chip.dataset.author);
+          authorInput.focus();
+        } else if (chip.dataset.repo) {
+          document.getElementById('repoUrl').value = chip.dataset.repo;
+          document.getElementById('repoUrl').focus();
+        }
       });
     });
 
