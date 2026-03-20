@@ -31,12 +31,11 @@ export class SvnContentProvider implements vscode.TextDocumentContentProvider {
       this.cache.set(cacheKey, content);
       return content;
     } catch (err: any) {
-      // For deleted files or files that don't exist at this revision, return empty
-      if (err.message?.includes('non-existent') || err.message?.includes('does not exist')) {
-        this.cache.set(cacheKey, '');
-        return '';
-      }
-      throw err;
+      // For newly added files, files missing in older revisions, or due to Chinese SVN locales
+      // suppressing the exact English "not found" text, we simply return an empty string
+      // so the diff viewer treats it as a completely new file.
+      this.cache.set(cacheKey, '');
+      return '';
     }
   }
 

@@ -22,7 +22,7 @@ export async function newSessionCommand(
 
   // Open the webview panel for session config
   createNewSessionPanel(extensionUri, async (data) => {
-    const { repoUrl, authors: authorsStr, startDate, endDate } = data;
+    const { repoUrl, authors: authorsStr, startDate, endDate, username, password } = data;
     const authors = authorsStr.split(',').map(a => a.trim()).filter(a => a.length > 0);
 
     if (authors.length === 0 || !repoUrl) {
@@ -45,7 +45,7 @@ export async function newSessionCommand(
         try {
           progress.report({ message: 'Querying SVN log...', increment: 0 });
 
-          const logEntries = await svnService.getLog(repoUrl, startDate, endDate);
+          const logEntries = await svnService.getLog(repoUrl, startDate, endDate, username, password);
 
           if (logEntries.length === 0) {
             vscode.window.showWarningMessage(

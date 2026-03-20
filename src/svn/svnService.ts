@@ -4,42 +4,42 @@
  */
 
 import * as cp from 'child_process';
+import * as util from 'util';
 import * as vscode from 'vscode';
 import { SvnLogEntry, BlameLine, DiffFile } from './types';
 import { parseLogXml, parseBlameXml, parseDiffUnified } from './svnParser';
 
+// Global output channel for debugging
+const svnLogChannel = vscode.window.createOutputChannel('SVN Audit Log');
+
+const execFileAsync = util.promisify(cp.execFile);
+
 /**
  * Execute a shell command and return stdout as a string.
- * Uses spawn for streaming to handle large outputs.
  */
-function execSvn(args: string[], cwd?: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const proc = cp.spawn('svn', args, {
+async function execSvn(args: string[], cwd?: string): Promise<string> {
+  const fullArgs = ['--non-interactive', '--trust-server-cert', ...args];
+  
+  svnLogChannel.appendLine(`\n[${new Date().toLocaleTimeString()}] Executing: svn ${fullArgs.join(' ')}`);
+
+  try {
+    // maxBuffer: 50MB (SVN logs and diffs can be large)
+    const { stdout, stderr } = await execFileAsync('svn', fullArgs, {
       cwd,
-      shell: true,
       windowsHide: true,
+      maxBuffer: 1024 * 1024 * 50, 
+      timeout: 60000, // 60s timeout
     });
-
-    const stdoutChunks: Buffer[] = [];
-    const stderrChunks: Buffer[] = [];
-
-    proc.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
-    proc.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
-
-    proc.on('close', (code) => {
-      const stdout = Buffer.concat(stdoutChunks).toString('utf-8');
-      const stderr = Buffer.concat(stderrChunks).toString('utf-8');
-      if (code !== 0) {
-        reject(new Error(`svn exited with code ${code}: ${stderr}`));
-      } else {
-        resolve(stdout);
-      }
-    });
-
-    proc.on('error', (err) => {
-      reject(new Error(`Failed to spawn svn: ${err.message}. Is SVN installed and in your PATH?`));
-    });
-  });
+    
+    svnLogChannel.appendLine(`[${new Date().toLocaleTimeString()}] Completed successfully. (Output length: ${stdout.length} bytes)`);
+    return stdout;
+  } catch (err: any) {
+    svnLogChannel.appendLine(`[${new Date().toLocaleTimeString()}] Failed: ${err.message}`);
+    if (err.stderr) {
+      svnLogChannel.appendLine(`[${new Date().toLocaleTimeString()}] Stderr: ${err.stderr}`);
+    }
+    throw new Error(`svn command failed: ${err.stderr || err.message}`);
+  }
 }
 
 export class SvnService {
@@ -66,15 +66,31 @@ export class SvnService {
 
   /**
    * Fetch SVN log entries for a given URL and date range.
+   * Passing username/password here relies on SVN caching it automatically for the system.
    */
-  async getLog(repoUrl: string, startDate: string, endDate: string): Promise<SvnLogEntry[]> {
+  async getLog(repoUrl: string, startDate: string, endDate: string, username?: string, password?: string): Promise<SvnLogEntry[]> {
+    // To make endDate inclusive without using spaces (which breaks PowerShell and SVN argv parsers on Windows),
+    // we advance the endDate by one full day. e.g. "2026-03-20" -> "2026-03-21"
+    const end = new Date(endDate);
+    end.setDate(end.getDate() + 1);
+    const endInclusiveStr = end.toISOString().split('T')[0];
+
     const args = [
       'log',
       '--xml',
       '-v', // verbose — include changed paths
-      '-r', `{${startDate}}:{${endDate}}`,
-      repoUrl,
+      '-r', `{${startDate}}:{${endInclusiveStr}}`,
     ];
+    
+    if (username) {
+      args.push('--username', username);
+    }
+    if (password) {
+      args.push('--password', password);
+    }
+    
+    args.push(repoUrl);
+    
     const xml = await execSvn(args);
     return parseLogXml(xml);
   }
