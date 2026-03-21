@@ -2,12 +2,18 @@ import * as vscode from 'vscode';
 import { getSettings, updateSettings, AppSettings, getAIModels, upsertAIModel, deleteAIModel, AIModelConfig } from '../storage/settingsRepo';
 import { getLocalization } from './localization';
 
+let currentDraft: AppSettings | null = null;
+let isDirty = false;
+
 export function createSettingsPanel(
   extensionUri: vscode.Uri,
-  storagePath: string
+  storagePath: string,
+  initialDraft?: AppSettings
 ): void {
-  const settings = getSettings();
+  const settings = initialDraft || getSettings();
   const L = getLocalization(settings.language);
+  currentDraft = { ...settings };
+  isDirty = !!initialDraft;
 
   const panel = vscode.window.createWebviewPanel(
     'svnAuditSettings',
@@ -21,7 +27,7 @@ export function createSettingsPanel(
   );
 
   const refresh = () => {
-    const s = getSettings();
+    const s = currentDraft || getSettings();
     const m = getAIModels();
     const loc = getLocalization(s.language);
     panel.title = loc.settingsTitle;
@@ -29,6 +35,36 @@ export function createSettingsPanel(
   };
 
   refresh();
+
+  panel.onDidDispose(async () => {
+    if (isDirty && currentDraft) {
+      const s = getSettings();
+      const loc = getLocalization(s.language);
+      const choice = await vscode.window.showWarningMessage(
+        loc.unsavedChanges,
+        { modal: true },
+        loc.save,
+        loc.discard
+      );
+
+      if (choice === loc.save) {
+        updateSettings(currentDraft, storagePath);
+        vscode.window.showInformationMessage(loc.successSaved);
+        isDirty = false;
+        currentDraft = null;
+      } else if (choice === undefined) {
+        // User clicked the native 'Cancel' button or background or Esc
+        // Re-open and restore state (this acts as 'Cancel')
+        createSettingsPanel(extensionUri, storagePath, currentDraft);
+      } else {
+        // Discard
+        isDirty = false;
+        currentDraft = null;
+      }
+    } else {
+      currentDraft = null;
+    }
+  });
 
   panel.webview.onDidReceiveMessage(async (message) => {
     const loc = getLocalization(getSettings().language);
@@ -41,7 +77,13 @@ export function createSettingsPanel(
         const newLang = message.settings.language || (vscode.env.language.startsWith('zh') ? 'zh' : 'en');
         vscode.commands.executeCommand('setContext', 'svnAudit.isZh', newLang === 'zh');
         
-        refresh(); // Refresh to apply language change if any
+        isDirty = false;
+        currentDraft = null;
+        panel.dispose();
+        break;
+      case 'dirty':
+        currentDraft = message.settings;
+        isDirty = true;
         break;
       case 'addModel':
       case 'updateModel':
@@ -130,7 +172,7 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
         }
       </style>
     </head>
-    <body>
+    <body onchange="reportDirty()">
       <h1>${L.settingsTitle}</h1>
       
       <div class="section-title">${L.svnCredentials}</div>
@@ -224,6 +266,21 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
         const models = ${modelData};
         let editingModelId = null;
 
+        function getSettingsFromUI() {
+          return {
+            svnUsername: document.getElementById('svnUsername').value,
+            svnPassword: document.getElementById('svnPassword').value,
+            aiModel: document.getElementById('currentModelSelect').value,
+            codingStandards: document.getElementById('codingStandards').value,
+            debugMode: document.getElementById('debugMode').checked,
+            language: document.getElementById('languageSelect').value
+          };
+        }
+
+        function reportDirty() {
+           vscode.postMessage({ command: 'dirty', settings: getSettingsFromUI() });
+        }
+
         const modelSelect = document.getElementById('currentModelSelect');
         const endpointInput = document.getElementById('modelEndpoint');
         const internalNameInput = document.getElementById('modelNameInternal');
@@ -244,8 +301,17 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
           }
         }
 
-        modelSelect.addEventListener('change', updateModelFields);
+        modelSelect.addEventListener('change', () => {
+          updateModelFields();
+          reportDirty();
+        });
         updateModelFields();
+
+        // Listen to all inputs for dirty tracking
+        document.querySelectorAll('input, select, textarea').forEach(el => {
+          el.addEventListener('input', reportDirty);
+          el.addEventListener('change', reportDirty);
+        });
 
         // Modals
         const modal = document.getElementById('modelModal');
@@ -308,6 +374,8 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
             id: editingModelId 
           });
           modal.style.display = 'none';
+          // Model changes automatically refresh the page, which clears dirty state for global settings but not models. 
+          // Actually refresh() re-renders, so we are fine.
         });
 
         deleteBtn.addEventListener('click', () => {
@@ -320,15 +388,7 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
 
         // Save All
         document.getElementById('saveAllBtn').addEventListener('click', () => {
-          const settings = {
-            svnUsername: document.getElementById('svnUsername').value,
-            svnPassword: document.getElementById('svnPassword').value,
-            aiModel: modelSelect.value,
-            codingStandards: document.getElementById('codingStandards').value,
-            debugMode: document.getElementById('debugMode').checked,
-            language: document.getElementById('languageSelect').value
-          };
-          vscode.postMessage({ command: 'save', settings });
+          vscode.postMessage({ command: 'save', settings: getSettingsFromUI() });
         });
       </script>
     </body>

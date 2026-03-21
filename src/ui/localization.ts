@@ -42,6 +42,9 @@ export interface LocalizedStrings {
     modelUpdated: string;
     modelDeleted: string;
     deleteConfirm: string;
+    unsavedChanges: string;
+    discard: string;
+    save: string;
 }
 
 const en: LocalizedStrings = {
@@ -84,6 +87,9 @@ const en: LocalizedStrings = {
     modelUpdated: "Model updated.",
     modelDeleted: "Model deleted.",
     deleteConfirm: "Are you sure you want to delete this model?",
+    unsavedChanges: "You have unsaved changes in Settings. Do you want to save them?",
+    discard: "Discard",
+    save: "Save",
 };
 
 const zh: LocalizedStrings = {
@@ -126,6 +132,9 @@ const zh: LocalizedStrings = {
     modelUpdated: "模型已更新。",
     modelDeleted: "模型已删除。",
     deleteConfirm: "确定要删除此模型吗？",
+    unsavedChanges: "设置中有未保存的修改。是否保存？",
+    discard: "不保存",
+    save: "保存",
 };
 
 export function getLocalization(lang?: string): LocalizedStrings {
