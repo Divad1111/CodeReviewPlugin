@@ -1,4 +1,6 @@
 {
+    "extension.displayName": "SVN 增量代码审计助手",
+    "extension.description": "SVN 增量代码审计助手 — 按人员+时间段聚合修改，支持行级批注、AI 辅助审查和 Markdown 报表导出",
     "svnAudit.newSession.title": "SVN 审计: 新建审计会话",
     "svnAudit.refresh.title": "SVN 审计: 刷新",
     "svnAudit.exportReport.title": "SVN 审计: 导出审计报告",

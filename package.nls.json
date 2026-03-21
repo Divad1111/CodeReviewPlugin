@@ -1,4 +1,6 @@
 {
+    "extension.displayName": "SVN Audit Assistant",
+    "extension.description": "SVN incremental code review assistant - aggregate changes by person+time, support line-level comments, AI review, and Markdown reports.",
     "svnAudit.newSession.title": "SVN Audit: New Review Session",
     "svnAudit.refresh.title": "SVN Audit: Refresh",
     "svnAudit.exportReport.title": "SVN Audit: Export Report",

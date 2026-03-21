@@ -1,53 +1,55 @@
-新建Session时，不想一步步的输入(地址， 人员，时间)，希望在新建Session时，弹窗一个界面，把这些信息都填进去，然后点击确定，就创建了一个Session，并且把创建的成功的信息保存在Sqlite中，下次可以直接选择这些信息，只要发现新输入在Sqlite中没有，则加入到Sqlite中。
+# SVN Audit Assistant (SVN 增量代码审计助手)
 
-Session列表面板需要做如下修改：
-1. 创建完session后，在Session列表默认选择新创建的Session
-2. 支持Session列表面板中的Session项的重命名session
+[English](#english) | [中文](#chinese)
 
-在Session列表面板中看不到对文件标记的类容，我需要增加如下需求：
-1. 在对应的文件item下面新增一个子项目，子项类容是每条comment,点击后能够跳转到对应的comment位置
-2. 在右边的diff view中对应行上以特殊显示，鼠标移动到行上的时候以hover tips的方式显示comment的内容
+---
 
+<h2 id="english">English</h2>
+## English
 
-1. 在Session列表面板中，Session中的人员项的右边增加一个导出按钮，点击后能够像导出整个session功能一样，但是只导出当前人员的
-2. 在Session列表面板中，Session中的人员项的右边增加一个删除按钮，点击后能够删除当前人员
-3. 在Session列表面板中，Session中的人员项的右边增加一个总结按钮，点击后根据日志记录总结(如果不能自动总结，则将日志内容去重后导出，后续版本可能考虑接入AI来进行分析)工作内容，并导出为markdown文档
+**SVN Audit Assistant** is a VS Code extension designed for SVN developers to simplify the incremental code review process. It aggregates code changes by author and time period, providing line-level comments, AI-assisted reviews, and automated report exports to help teams efficiently control code quality.
 
-在Session列表面板中最顶部的按钮列表的最右边新增一个设置按钮，点击后打开设置界面，设置界面包含如下内容：
-1. 将创建session时的SVN username和password移动到设置界面中，
-2. 在设置界面中增加一个AI大模型列表（OpenAI, Qianwen, DeepSeek, Claude, Gemini, Kimi, GLM5）
-3. 在设置界面中增加一个AI大模型API Key输入框，
-4. 在设置界面新增一个编码规范输入框，里面会输入项目中的编码规范（命名，注释等相关的检查），内容可能会很多，用一个大点的区域
-5. 设置面板的参数保存到Sqlite中，下次打开设置界面时，能够恢复上次的设置
+### ✨ Key Features
+*   **📂 Audit Session Management**: Create audit sessions based on SVN URLs, specific developers, and time ranges. All data is stored in a local SQLite database.
+*   **🔍 Incremental Diff & Annotation**: One-click internal Diff view with line-level comments (via `Enter` key).
+*   **🤖 AI-Powered Review**: Built-in support for DeepSeek, OpenAI, Claude, Gemini, Kimi, GLM, etc. AI can automatically analyze code and generate work summaries.
+*   **📊 Report Export**: Export audit results for the entire session or specific individuals to standard Markdown documents.
 
-在Session列表面板中，Session中的人员项的右边增加一个AI按钮，点击后能够自动根据提交记录中的文件修改内容，分析代码的编码规范(命名规则之类的，在设置界面会提供规范内容)和可能存在的BUG，代码存在的问题直接添加comment，和手动添加comment一样
+### 🚀 Quick Start
+1.  **Config**: Click the **SVN Audit** icon -> **Settings**. Configure SVN credentials and AI Engine.
+2.  **Create Session**: Click **+ (New Review Session)**. Enter SVN URL, authors, and time range.
+3.  **Audit**: Expand the session, select a file, and press `Enter` to add a comment in the Diff view.
+4.  **Export**: Click the **Export** button next to a session or person to save the report.
 
+---
 
+<h2 id="chinese">中文</h2>
+## 中文
 
-现在对设置界面中的AI Engine部分做如下修改：
-1. 大语言模型支持设置大语言模型名字，Endpoint, ModelName和API Key的设置，当模型名字改变时，Endpoint和ModelName自动填充对应的默认值，API Key如果数据库有记录则填充，否则为空
-2. 模型列表只预设DeepSeek, 其他模型需要手动添加
-3. 新增加添加模型按钮，点击后弹出对话框，对话框包含大语言模型名字，Endpoint, ModelName和API Key的输入框，点击确定后，将模型添加到数据库中，并更新模型列表
-4. 新增修改模型按钮，点击后修改当前选中的模型，如果当前选中的模型是DeepSeek，修改按钮置灰，点击提示默认模型不可修改
-5. 新增删除模型按钮，点击后删除当前选中的模型，如果当前选中的模型是DeepSeek，删除按钮置灰，点击提示默认模型不可删除
+**SVN Audit Assistant** 是一款专为 SVN 开发者设计的 VS Code 插件，旨在简化增量代码审查流程。它通过按人员和时间段聚合代码修改，提供行级批注、AI 辅助审查以及自动化报告导出功能，助力团队高效把控代码质量。
 
+### ✨ 核心功能
+*   **📂 审计会话管理 (Audit Sessions)**：按 SVN 地址、开发人员及时间范围创建会话。所有数据持久化存储在本地 SQLite 中。
+*   **🔍 增量对比与批注**：内置 Diff 视图，支持在差异窗口直接通过 `Enter` 键添加行级批注。
+*   **🤖 AI 智能辅助 (AI Power)**：支持 DeepSeek、OpenAI、Claude、Kimi 等主流模型。AI 可自动分析代码漏洞并生成工作总结。
+*   **📊 报告导出**：支持将审计结果（含批注、修改点）一键导出为标准 Markdown 报表。
 
-1. 在Session面板中的一个Session中，如果我在Session中的被审查人员的item上点击了AI审查，需要记录是否审查过，如果审查过则不需要重复审查，没有审查过的才需要审查
-2. 在Session面板中的一个文件item的最后边增加一个AI审查按钮，点击后审查此文件，逻辑和审查人的逻辑一样，只是审查这个人的单个文件
-3. 按住ctrl后，点击人员item和文件item上的AI审查按钮时，弹出一个选择模型列表弹窗，能用的模型就是配置中的模型，当用户选中模型后点击确定，此时临时使用选中的模型来进行代码审查，下次如果用户没有按住ctrl点击，则使用默认模型进行代码审查
-4. 在输出窗口中，把发送给大模型的内容和返回的内容都打印出来
+### 🚀 快速上手
+1.  **基础配置**：点击侧边栏图标 -> **设置 (Settings)**，配置 SVN 账号及 AI 引擎。
+2.  **创建会话**：点击标题栏的 **+** 按钮。输入 SVN 地址、人员列表及时间范围。
+3.  **开始审计**：在侧边栏选中文件，点击打开 Diff 视图，按 `Enter` 键添加评论。
+4.  **导出结果**：点击会话或人员旁的 **导出 (Export)** 按钮即可生成报告。
 
-在帮我优化两个交互体验：
-1. 在Diff viev窗口中，现在是点击右键，然后选择Add Comment，我想优化成点击回车键，然后弹出Add Comment的对话框。
-2. 在Session列表窗口中，想要重新（强制）审查时，需要在人员和文件item上点击右键，弹窗选中一个模型后才能重新进行AI审查，现在我需要在按住Ctrl键的时候点击人员和文件item上的AI审查按钮时，直接调用配置里配置的默认模型进行代码审查，不需要再弹窗选择模型
+---
 
-现在输出窗口的内容太多了，新增需求如下：
-1. 在设置面板中新增一个Debug开关，默认关闭，开启后在输出窗口打印给大模型的请求和返回内容，关闭后不打印
-2. Debug开关也要存储在Sqlite中，下次打开插件时能够恢复上次的设置
+## ⌨️ Shortcuts (快捷键)
+*   **Enter**: Add/Edit comment in Diff View (在差异视图中添加/编辑评论)。
 
-界面需要新增多语言支持，在设置界面可以切换语言，默认根据编辑器的语言来设置，支持的语言有中文和英文，如果编辑器的语言不是中文和英文则使用英文
+## 🌐 Multi-language Support
+The extension UI language will automatically switch with the VS Code language setting.
+插件界面语言将跟随 VS Code 语言设置自动切换。
 
-session列表中的哪些按钮的hover tips和右键上下文菜单中还是没有跟随设置的语言变化，还有diff view中的上下文菜单
+---
 
-设置界面优化：
-1. 当修改了类容后，直接关闭设置界面，需要提示是否保存，点是就保存，点否就取消，就不关闭界面
+> [!TIP]
+> Enabling "Debug Mode" allows you to view detailed AI request payloads and bodies in the output window for easy debugging.

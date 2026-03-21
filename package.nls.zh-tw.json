@@ -1,4 +1,6 @@
 {
+    "extension.displayName": "SVN 增量代碼審計助手",
+    "extension.description": "SVN 增量代碼審計助手 — 按人員+時間段聚合修改，支持行級批註、AI 輔助審查和 Markdown 報表匯出",
     "svnAudit.newSession.title": "SVN 審計: 新建審計會話",
     "svnAudit.refresh.title": "SVN 審計: 刷新",
     "svnAudit.exportReport.title": "SVN 審計: 匯出審計報告",

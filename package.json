@@ -1,7 +1,7 @@
 {
   "name": "svn-audit-assistant",
-  "displayName": "SVN Audit Assistant",
-  "description": "SVN 增量代码审计助手 — 按人员+时间段聚合修改，支持行级批注、覆盖检测和 Markdown 报表导出",
+  "displayName": "%extension.displayName%",
+  "description": "%extension.description%",
   "version": "0.1.0",
   "publisher": "codereview",
   "engines": {
@@ -34,95 +34,95 @@
     "commands": [
       {
         "command": "svnAudit.newSession",
-        "title": "SVN Audit: New Review Session",
+        "title": "%svnAudit.newSession.title%",
         "icon": "$(add)"
       },
       {
         "command": "svnAudit.refresh",
-        "title": "SVN Audit: Refresh",
+        "title": "%svnAudit.refresh.title%",
         "icon": "$(refresh)"
       },
       {
         "command": "svnAudit.exportReport",
-        "title": "SVN Audit: Export Report",
+        "title": "%svnAudit.exportReport.title%",
         "icon": "$(export)"
       },
       {
         "command": "svnAudit.addComment",
-        "title": "SVN Audit: Add Comment"
+        "title": "%svnAudit.addComment.title%"
       },
       {
         "command": "svnAudit.markReviewed",
-        "title": "SVN Audit: Mark as Reviewed",
+        "title": "%svnAudit.markReviewed.title%",
         "icon": "$(check)"
       },
       {
         "command": "svnAudit.markFlagged",
-        "title": "SVN Audit: Mark as Flagged",
+        "title": "%svnAudit.markFlagged.title%",
         "icon": "$(warning)"
       },
       {
         "command": "svnAudit.openDiff",
-        "title": "SVN Audit: Open Diff View"
+        "title": "%svnAudit.openDiff.title%"
       },
       {
         "command": "svnAudit.deleteSession",
-        "title": "SVN Audit: Delete Session",
+        "title": "%svnAudit.deleteSession.title%",
         "icon": "$(trash)"
       },
       {
         "command": "svnAudit.addAuthorToSession",
-        "title": "SVN Audit: Add Author",
+        "title": "%svnAudit.addAuthorToSession.title%",
         "icon": "$(person-add)"
       },
       {
         "command": "svnAudit.renameSession",
-        "title": "SVN Audit: Rename Session",
+        "title": "%svnAudit.renameSession.title%",
         "icon": "$(edit)"
       },
       {
         "command": "svnAudit.editComment",
-        "title": "SVN Audit: Edit Comment",
+        "title": "%svnAudit.editComment.title%",
         "icon": "$(edit)"
       },
       {
         "command": "svnAudit.deleteComment",
-        "title": "SVN Audit: Delete Comment",
+        "title": "%svnAudit.deleteComment.title%",
         "icon": "$(trash)"
       },
       {
         "command": "svnAudit.exportAuthorReport",
-        "title": "SVN Audit: Export Author Report",
+        "title": "%svnAudit.exportAuthorReport.title%",
         "icon": "$(export)"
       },
       {
         "command": "svnAudit.summarizeAuthor",
-        "title": "SVN Audit: Summarize Author",
+        "title": "%svnAudit.summarizeAuthor.title%",
         "icon": "$(book)"
       },
       {
         "command": "svnAudit.deleteAuthor",
-        "title": "SVN Audit: Delete Author",
+        "title": "%svnAudit.deleteAuthor.title%",
         "icon": "$(trash)"
       },
       {
         "command": "svnAudit.aiAudit",
-        "title": "SVN Audit: AI Code Review",
+        "title": "%svnAudit.aiAudit.title%",
         "icon": "$(sparkle)"
       },
       {
         "command": "svnAudit.aiAuditSelectModel",
-        "title": "SVN Audit: AI Code Review (Select Model)",
+        "title": "%svnAudit.aiAuditSelectModel.title%",
         "icon": "$(sparkle)"
       },
       {
         "command": "svnAudit.aiAuditForce",
-        "title": "SVN Audit: AI Code Review (Force Default)",
+        "title": "%svnAudit.aiAuditForce.title%",
         "icon": "$(sparkle)"
       },
       {
         "command": "svnAudit.openSettings",
-        "title": "SVN Audit: Settings",
+        "title": "%svnAudit.openSettings.title%",
         "icon": "$(settings-gear)"
       },
       {
