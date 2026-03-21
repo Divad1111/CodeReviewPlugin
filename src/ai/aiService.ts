@@ -1,8 +1,4 @@
-/**
- * AI Service: Handles communication with various AI providers.
- */
-
-import { AppSettings } from '../storage/settingsRepo';
+import { getSettings, getAIModelByName } from '../storage/settingsRepo';
 
 export interface AIAnalysisResult {
   comments: {
@@ -19,33 +15,41 @@ export class AIService {
   async analyzeDiff(
     filePath: string,
     diff: string,
-    settings: AppSettings
+    standards: string
   ): Promise<AIAnalysisResult> {
-    if (!settings.aiApiKey) {
-      throw new Error('AI API Key is not configured in settings.');
+    const settings = getSettings();
+    const config = getAIModelByName(settings.aiModel);
+
+    if (!config) {
+      throw new Error(`AI Model '${settings.aiModel}' not found.`);
     }
 
-    const prompt = this.buildPrompt(filePath, diff, settings.codingStandards || 'Check for bugs and common naming issues.');
-    
-    // For now, I'll implement a generic fetch to a supporting endpoint or DeepSeek as default
-    // In a real production app, we'd use specific SDKs for each provider.
-    // For this demonstration, I'll use a generic OpenAI-compatible fetch.
-    
-    const endpoint = this.getEndpoint(settings.aiModel);
-    const modelName = this.getModelName(settings.aiModel);
+    if (!config.apiKey) {
+      throw new Error(`API Key for model '${config.name}' is not configured.`);
+    }
+
+    const prompt = this.buildPrompt(filePath, diff, standards || 'Check for bugs and common naming issues.');
+
+    let endpoint = config.endpoint.trim();
+    const modelName = config.modelName;
+
+    // Normalize endpoint: ensure it ends with /chat/completions for OpenAI-compatible APIs
+    if (!endpoint.endsWith('/chat/completions')) {
+      endpoint = endpoint.replace(/\/$/, '') + '/chat/completions';
+    }
 
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${settings.aiApiKey}`
+          'Authorization': `Bearer ${config.apiKey}`
         },
         body: JSON.stringify({
           model: modelName,
           messages: [
-            { 
-              role: 'system', 
+            {
+              role: 'system',
               content: 'You are a senior code reviewer. Analyze the provided diff and return a valid JSON object with a "comments" array. Each comment MUST have "line" (number, relative to the diff or file), "text" (string), and optional "codeSnippet". Focus on coding standards and bugs. Return ONLY JSON.'
             },
             { role: 'user', content: prompt }
@@ -78,24 +82,5 @@ export class AIService {
       ${diff}
     `;
   }
-
-  private getEndpoint(model: string): string {
-    switch (model) {
-      case 'DeepSeek': return 'https://api.deepseek.com/v1/chat/completions';
-      case 'OpenAI': return 'https://api.openai.com/v1/chat/completions';
-      case 'Qianwen': return 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
-      // ... others would go here
-      default: return 'https://api.deepseek.com/v1/chat/completions';
-    }
-  }
-
-  private getModelName(model: string): string {
-    switch (model) {
-      case 'DeepSeek': return 'deepseek-chat';
-      case 'OpenAI': return 'gpt-4-turbo-preview';
-      case 'Qianwen': return 'qwen-plus';
-      // ... others
-      default: return 'deepseek-chat';
-    }
-  }
 }
+

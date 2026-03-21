@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { AIService } from '../ai/aiService';
 import { SvnService } from '../svn/svnService';
-import { getSettings } from '../storage/settingsRepo';
+import { getSettings, getAIModelByName, upsertAIModel } from '../storage/settingsRepo';
 import { getSessionById } from '../storage/sessionRepo';
 import { getReviewLogsByAuthor } from '../storage/reviewRepo';
 import { addComment } from '../storage/commentRepo';
@@ -25,10 +25,17 @@ export async function aiAuditCommand(
   if (!session) { return; }
 
   const settings = getSettings();
-  if (!settings.aiApiKey) {
-    vscode.window.showErrorMessage('AI API Key is missing. Please set it in SVN Audit settings.');
+  const config = getAIModelByName(settings.aiModel);
+  if (!config) {
+    vscode.window.showErrorMessage(`AI Model '${settings.aiModel}' not found.`);
     return;
   }
+
+  if (!config.apiKey) {
+    vscode.window.showErrorMessage(`AI API Key is missing for model '${settings.aiModel}'. Please set it in SVN Audit settings (Edit Model).`);
+    return;
+  }
+
 
   aiAuditChannel.clear();
   aiAuditChannel.show();
@@ -83,7 +90,7 @@ export async function aiAuditCommand(
 
           // 2. Analyze with AI
           aiAuditChannel.appendLine(`Calling AI (${settings.aiModel})...`);
-          const results = await aiService.analyzeDiff(rl.filePath, diff, settings);
+          const results = await aiService.analyzeDiff(rl.filePath, diff, settings.codingStandards || '');
 
           aiAuditChannel.appendLine(`AI suggested ${results.comments.length} comments.`);
 

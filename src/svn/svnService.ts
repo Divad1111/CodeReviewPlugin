@@ -18,14 +18,16 @@ const execFileAsync = util.promisify(cp.execFile);
 /**
  * Execute a shell command and return stdout as a string.
  */
-async function execSvn(args: string[], cwd?: string): Promise<string> {
-  const settings = getSettings();
+async function execSvn(args: string[], cwd?: string, skipAuth = false): Promise<string> {
   const authArgs = [];
-  if (settings.svnUsername) {
-    authArgs.push('--username', settings.svnUsername);
-  }
-  if (settings.svnPassword) {
-    authArgs.push('--password', settings.svnPassword);
+  if (!skipAuth) {
+    const settings = getSettings();
+    if (settings.svnUsername) {
+      authArgs.push('--username', settings.svnUsername);
+    }
+    if (settings.svnPassword) {
+      authArgs.push('--password', settings.svnPassword);
+    }
   }
 
   const fullArgs = ['--non-interactive', '--trust-server-cert', ...authArgs, ...args];
@@ -61,11 +63,12 @@ export class SvnService {
    */
   async checkSvn(): Promise<boolean> {
     try {
-      await execSvn(['--version', '--quiet']);
+      await execSvn(['--version', '--quiet'], undefined, true);
       return true;
-    } catch {
+    } catch (err: any) {
+      svnLogChannel.appendLine(`[${new Date().toLocaleTimeString()}] SVN Check Failed: ${err.message}`);
       vscode.window.showErrorMessage(
-        'SVN command-line tool not found. Please install SVN and ensure it is in your PATH.',
+        `SVN command-line tool check failed: ${err.message}. Please ensure SVN is installed and in your PATH.`,
         'Download SVN'
       ).then((choice) => {
         if (choice === 'Download SVN') {

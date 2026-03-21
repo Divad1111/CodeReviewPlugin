@@ -180,4 +180,27 @@ function runMigrations(database: Database): void {
       "INSERT INTO Settings (id, ai_model) VALUES ('global', 'DeepSeek')"
     );
   }
+
+  // AI Models table: dynamic model management
+  database.run(`
+    CREATE TABLE IF NOT EXISTS AIModels (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      endpoint TEXT NOT NULL,
+      model_name TEXT NOT NULL,
+      api_key TEXT,
+      is_default INTEGER DEFAULT 0
+    )
+  `);
+
+  // Insert DeepSeek if not exists
+  const hasDeepSeek = database.exec("SELECT COUNT(*) FROM AIModels WHERE name = 'DeepSeek'");
+  if (hasDeepSeek.length > 0 && hasDeepSeek[0].values[0][0] === 0) {
+     const id = require('crypto').randomUUID();
+     database.run(
+      `INSERT INTO AIModels (id, name, endpoint, model_name, is_default) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [id, 'DeepSeek', 'https://api.deepseek.com/v1/chat/completions', 'deepseek-chat', 1]
+    );
+  }
 }
