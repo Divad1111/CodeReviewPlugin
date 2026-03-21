@@ -8,9 +8,9 @@ import * as path from 'path';
 import { AuditSession, ReviewLog } from '../svn/types';
 import { getSessions } from '../storage/sessionRepo';
 import { getReviewLogsBySession } from '../storage/reviewRepo';
-import { getCommentCount } from '../storage/commentRepo';
+import { getCommentCount, getCommentsByReviewLog } from '../storage/commentRepo';
 
-export type AuditTreeItemType = 'session' | 'person' | 'file';
+export type AuditTreeItemType = 'session' | 'person' | 'file' | 'comment';
 
 export class AuditTreeItem extends vscode.TreeItem {
   constructor(
@@ -20,7 +20,8 @@ export class AuditTreeItem extends vscode.TreeItem {
     public readonly sessionId?: string,
     public readonly author?: string,
     public readonly reviewLog?: ReviewLog,
-    public customTooltip?: string
+    public customTooltip?: string,
+    public readonly comment?: any // Will cast type during import later if needed, but any avoids coupling here if it wasn't required
   ) {
     super(label, collapsibleState);
     this.contextValue = itemType;
@@ -51,6 +52,19 @@ export class AuditTreeItem extends vscode.TreeItem {
             command: 'svnAudit.openDiff',
             title: 'Open Diff',
             arguments: [this.reviewLog],
+          };
+        }
+        break;
+      }
+      case 'comment': {
+        if (this.comment && this.reviewLog) {
+          this.iconPath = new vscode.ThemeIcon('comment-discussion');
+          this.tooltip = `Line ${this.comment.lineNumber}: ${this.comment.commentText}`;
+          this.description = `Line ${this.comment.lineNumber}`;
+          this.command = {
+            command: 'svnAudit.openDiff',
+            title: 'Open Diff',
+            arguments: [this.reviewLog, this.comment],
           };
         }
         break;
@@ -100,6 +114,11 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
         return this.getPersonNodes(element.sessionId!);
       case 'person':
         return this.getFileNodes(element.sessionId!, element.author!);
+      case 'file':
+        if (element.reviewLog) {
+          return this.getCommentNodes(element.reviewLog);
+        }
+        return Promise.resolve([]);
       default:
         return Promise.resolve([]);
     }
@@ -152,13 +171,34 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
 
     return reviewLogs.map((rl) => {
       const filename = path.basename(rl.filePath);
+      const commentCount = getCommentCount(rl.id);
+      const collapsibleState = commentCount > 0
+        ? vscode.TreeItemCollapsibleState.Collapsed
+        : vscode.TreeItemCollapsibleState.None;
+
       return new AuditTreeItem(
         filename,
         'file',
-        vscode.TreeItemCollapsibleState.None,
+        collapsibleState,
         sessionId,
         author,
         rl
+      );
+    });
+  }
+
+  private async getCommentNodes(reviewLog: ReviewLog): Promise<AuditTreeItem[]> {
+    const comments = getCommentsByReviewLog(reviewLog.id);
+    return comments.map(c => {
+      return new AuditTreeItem(
+        c.commentText.length > 30 ? c.commentText.substring(0, 30) + '...' : c.commentText,
+        'comment',
+        vscode.TreeItemCollapsibleState.None,
+        reviewLog.sessionId,
+        undefined,
+        reviewLog,
+        undefined,
+        c
       );
     });
   }

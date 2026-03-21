@@ -8,10 +8,12 @@ import { addComment } from '../storage/commentRepo';
 import { getReviewLogsBySession } from '../storage/reviewRepo';
 import { getSessions } from '../storage/sessionRepo';
 import { AuditTreeDataProvider } from '../ui/auditTreeProvider';
+import { DiffViewManager } from '../ui/diffViewManager';
 
 export async function addCommentCommand(
   treeProvider: AuditTreeDataProvider,
-  storagePath: string
+  storagePath: string,
+  diffManager: DiffViewManager
 ): Promise<void> {
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
@@ -74,6 +76,9 @@ export async function addCommentCommand(
 
   // Refresh tree to update icon
   treeProvider.refresh();
+
+  // Refresh decorations in the current editor
+  diffManager.refreshDecorations(editor);
 
   vscode.window.showInformationMessage(`Comment added at line ${lineNumber}.`);
 }

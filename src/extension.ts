@@ -17,7 +17,7 @@ import { markReviewedCommand, markFlaggedCommand } from './commands/markReviewed
 import { exportReportCommand } from './commands/exportReport';
 import { deleteSession } from './storage/sessionRepo';
 import { renameSessionCommand } from './commands/renameSession';
-import { ReviewLog } from './svn/types';
+import { ReviewLog, ReviewComment } from './svn/types';
 import { AuditTreeItem } from './ui/auditTreeProvider';
 
 let storagePath: string;
@@ -87,7 +87,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Add Comment (editor context menu)
   context.subscriptions.push(
     vscode.commands.registerCommand('svnAudit.addComment', () =>
-      addCommentCommand(treeProvider, storagePath)
+      addCommentCommand(treeProvider, storagePath, diffManager)
     )
   );
 
@@ -107,8 +107,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // Open Diff View
   context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.openDiff', (reviewLog: ReviewLog) =>
-      diffManager.openDiffView(reviewLog)
+    vscode.commands.registerCommand('svnAudit.openDiff', (reviewLog: ReviewLog, comment?: ReviewComment) =>
+      diffManager.openDiffView(reviewLog, comment)
     )
   );
 

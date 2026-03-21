@@ -15,7 +15,20 @@ let db: Database | null = null;
 export async function initDatabase(storagePath: string): Promise<Database> {
   const SQL = await initSqlJs({
     locateFile: (file: string) => {
-      // In production, the WASM file is in the same directory as extension.js
+      // In production (esbuild), the WASM file is in out/ alongside extension.js
+      // When running via tsc, __dirname is out/storage, so we also check out/ or node_modules directly
+      const paths = [
+        path.join(__dirname, file),
+        path.join(__dirname, '..', file),
+        path.join(__dirname, '..', '..', 'node_modules', 'sql.js', 'dist', file)
+      ];
+
+      for (const p of paths) {
+        if (fs.existsSync(p)) {
+          return p;
+        }
+      }
+
       return path.join(__dirname, file);
     },
   });
