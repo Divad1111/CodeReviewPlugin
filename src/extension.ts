@@ -17,6 +17,7 @@ import { markReviewedCommand, markFlaggedCommand } from './commands/markReviewed
 import { exportReportCommand } from './commands/exportReport';
 import { deleteSession } from './storage/sessionRepo';
 import { renameSessionCommand } from './commands/renameSession';
+import { addAuthorCommand } from './commands/addAuthor';
 import { editCommentCommand, deleteCommentCommand } from './commands/commentActions';
 import { ReviewLog, ReviewComment } from './svn/types';
 import { AuditTreeItem } from './ui/auditTreeProvider';
@@ -147,6 +148,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.commands.registerCommand('svnAudit.renameSession', (node) =>
       renameSessionCommand(node, treeProvider, storagePath)
+    )
+  );
+
+  // Add Author to Session
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.addAuthorToSession', (node: AuditTreeItem) =>
+      addAuthorCommand(node, svnService, treeProvider, storagePath)
     )
   );
 

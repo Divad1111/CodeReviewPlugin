@@ -71,6 +71,11 @@
         "icon": "$(trash)"
       },
       {
+        "command": "svnAudit.addAuthorToSession",
+        "title": "SVN Audit: Add Author",
+        "icon": "$(person-add)"
+      },
+      {
         "command": "svnAudit.renameSession",
         "title": "SVN Audit: Rename Session",
         "icon": "$(edit)"
@@ -114,6 +119,11 @@
           "command": "svnAudit.markFlagged",
           "when": "view == svnAuditSidebar && viewItem == file",
           "group": "inline@2"
+        },
+        {
+          "command": "svnAudit.addAuthorToSession",
+          "when": "view == svnAuditSidebar && viewItem == session",
+          "group": "inline@0"
         },
         {
           "command": "svnAudit.renameSession",

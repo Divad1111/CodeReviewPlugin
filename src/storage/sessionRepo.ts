@@ -51,6 +51,18 @@ export function renameSession(sessionId: string, newName: string, storagePath: s
 }
 
 /**
+ * Update the list of authors for an audit session.
+ */
+export function updateSessionAuthors(sessionId: string, authors: string[], storagePath: string): void {
+  const db = getDatabase();
+  db.run(
+    'UPDATE Sessions SET authors = ? WHERE id = ?',
+    [JSON.stringify(authors), sessionId]
+  );
+  saveDatabase(storagePath);
+}
+
+/**
  * Get all sessions, ordered by creation date descending.
  */
 export function getSessions(): AuditSession[] {
