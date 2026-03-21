@@ -119,6 +119,24 @@ export function updateReviewStatus(
   saveDatabase(storagePath);
 }
 
+/**
+ * Delete all review logs (and their comments) for a specific author in a session.
+ */
+export function deleteReviewLogsByAuthor(sessionId: string, author: string, storagePath: string): void {
+  const db = getDatabase();
+  // Delete comments first
+  db.run(
+    `DELETE FROM Comments WHERE review_log_id IN
+     (SELECT id FROM ReviewLogs WHERE session_id = ? AND author = ?)`,
+    [sessionId, author]
+  );
+  db.run(
+    'DELETE FROM ReviewLogs WHERE session_id = ? AND author = ?',
+    [sessionId, author]
+  );
+  saveDatabase(storagePath);
+}
+
 function mapRowToReviewLog(row: any[]): ReviewLog {
   return {
     id: row[0] as string,

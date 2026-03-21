@@ -89,6 +89,21 @@
         "command": "svnAudit.deleteComment",
         "title": "SVN Audit: Delete Comment",
         "icon": "$(trash)"
+      },
+      {
+        "command": "svnAudit.exportAuthorReport",
+        "title": "SVN Audit: Export Author Report",
+        "icon": "$(export)"
+      },
+      {
+        "command": "svnAudit.summarizeAuthor",
+        "title": "SVN Audit: Summarize Author",
+        "icon": "$(book)"
+      },
+      {
+        "command": "svnAudit.deleteAuthor",
+        "title": "SVN Audit: Delete Author",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -119,6 +134,21 @@
           "command": "svnAudit.markFlagged",
           "when": "view == svnAuditSidebar && viewItem == file",
           "group": "inline@2"
+        },
+        {
+          "command": "svnAudit.exportAuthorReport",
+          "when": "view == svnAuditSidebar && viewItem == person",
+          "group": "inline@1"
+        },
+        {
+          "command": "svnAudit.summarizeAuthor",
+          "when": "view == svnAuditSidebar && viewItem == person",
+          "group": "inline@2"
+        },
+        {
+          "command": "svnAudit.deleteAuthor",
+          "when": "view == svnAuditSidebar && viewItem == person",
+          "group": "inline@3"
         },
         {
           "command": "svnAudit.addAuthorToSession",

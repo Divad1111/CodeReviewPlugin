@@ -96,6 +96,14 @@ export class SvnService {
   }
 
   /**
+   * Fetch SVN logs for a specific author in a date range.
+   */
+  async getLogsForAuthor(repoUrl: string, startDate: string, endDate: string, author: string): Promise<SvnLogEntry[]> {
+    const logs = await this.getLog(repoUrl, startDate, endDate);
+    return logs.filter(l => l.author === author);
+  }
+
+  /**
    * Get unified diff between two revisions.
    */
   async getDiff(repoUrl: string, revBase: number, revEnd: number): Promise<string> {

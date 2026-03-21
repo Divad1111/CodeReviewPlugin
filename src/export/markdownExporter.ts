@@ -6,19 +6,21 @@
 import * as path from 'path';
 import { AuditSession, ReviewLog, ReviewComment } from '../svn/types';
 import { getSessionById, getSessions } from '../storage/sessionRepo';
-import { getReviewLogsBySession } from '../storage/reviewRepo';
+import { getReviewLogsBySession, getReviewLogsByAuthor } from '../storage/reviewRepo';
 import { getCommentsByReviewLog } from '../storage/commentRepo';
 
 /**
  * Generate a Markdown report for a given session.
  */
-export function generateMarkdownReport(sessionId: string): string {
+export function generateMarkdownReport(sessionId: string, targetAuthor?: string): string {
   const session = getSessionById(sessionId);
   if (!session) {
     return '# Error\n\nSession not found.';
   }
 
-  const reviewLogs = getReviewLogsBySession(sessionId);
+  const reviewLogs = targetAuthor 
+    ? getReviewLogsByAuthor(sessionId, targetAuthor)
+    : getReviewLogsBySession(sessionId);
 
   // Group by author
   const authorGroups = new Map<string, ReviewLog[]>();
@@ -32,7 +34,7 @@ export function generateMarkdownReport(sessionId: string): string {
   const lines: string[] = [];
 
   // Header
-  lines.push(`# SVN Audit Report`);
+  lines.push(`# SVN Audit Report${targetAuthor ? `: ${targetAuthor}` : ''}`);
   lines.push('');
   lines.push(`| Field | Value |`);
   lines.push(`|-------|-------|`);
@@ -47,9 +49,9 @@ export function generateMarkdownReport(sessionId: string): string {
 
   // Summary statistics
   const totalFiles = reviewLogs.length;
-  const approvedFiles = reviewLogs.filter(r => r.status === 'approved').length;
-  const flaggedFiles = reviewLogs.filter(r => r.status === 'flagged').length;
-  const pendingFiles = reviewLogs.filter(r => r.status === 'pending').length;
+  const approvedFiles = reviewLogs.filter((r: ReviewLog) => r.status === 'approved').length;
+  const flaggedFiles = reviewLogs.filter((r: ReviewLog) => r.status === 'flagged').length;
+  const pendingFiles = reviewLogs.filter((r: ReviewLog) => r.status === 'pending').length;
 
   lines.push(`## Summary`);
   lines.push('');

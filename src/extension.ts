@@ -18,6 +18,9 @@ import { exportReportCommand } from './commands/exportReport';
 import { deleteSession } from './storage/sessionRepo';
 import { renameSessionCommand } from './commands/renameSession';
 import { addAuthorCommand } from './commands/addAuthor';
+import { deleteAuthorCommand } from './commands/deleteAuthor';
+import { exportAuthorReportCommand } from './commands/exportAuthorReport';
+import { summarizeAuthorCommand } from './commands/summarizeAuthor';
 import { editCommentCommand, deleteCommentCommand } from './commands/commentActions';
 import { ReviewLog, ReviewComment } from './svn/types';
 import { AuditTreeItem } from './ui/auditTreeProvider';
@@ -155,6 +158,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.commands.registerCommand('svnAudit.addAuthorToSession', (node: AuditTreeItem) =>
       addAuthorCommand(node, svnService, treeProvider, storagePath)
+    )
+  );
+
+  // Author specific commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.deleteAuthor', (item: AuditTreeItem) =>
+      deleteAuthorCommand(item, treeProvider, storagePath)
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.exportAuthorReport', (item: AuditTreeItem) =>
+      exportAuthorReportCommand(item)
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.summarizeAuthor', (item: AuditTreeItem) =>
+      summarizeAuthorCommand(item, svnService)
     )
   );
 
