@@ -45,6 +45,10 @@ export interface LocalizedStrings {
     unsavedChanges: string;
     discard: string;
     save: string;
+    exportSettings: string;
+    importSettings: string;
+    importSuccess: string;
+    importError: string;
 }
 
 const en: LocalizedStrings = {
@@ -90,6 +94,10 @@ const en: LocalizedStrings = {
     unsavedChanges: "You have unsaved changes in Settings. Do you want to save them?",
     discard: "Discard",
     save: "Save",
+    exportSettings: "Export Config",
+    importSettings: "Import Config",
+    importSuccess: "Settings imported successfully.",
+    importError: "Failed to import settings. Invalid file format.",
 };
 
 const zh: LocalizedStrings = {
@@ -135,6 +143,10 @@ const zh: LocalizedStrings = {
     unsavedChanges: "设置中有未保存的修改。是否保存？",
     discard: "不保存",
     save: "保存",
+    exportSettings: "导出配置",
+    importSettings: "导入配置",
+    importSuccess: "配置导入成功。",
+    importError: "配置导入失败。请检查文件格式是否正确。",
 };
 
 export function getLocalization(lang?: string): LocalizedStrings {

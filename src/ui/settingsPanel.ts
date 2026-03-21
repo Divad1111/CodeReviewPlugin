@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getSettings, updateSettings, AppSettings, getAIModels, upsertAIModel, deleteAIModel, AIModelConfig } from '../storage/settingsRepo';
+import { getSettings, updateSettings, AppSettings, getAIModels, upsertAIModel, deleteAIModel, AIModelConfig, importAllSettings } from '../storage/settingsRepo';
 import { getLocalization } from './localization';
 
 let currentDraft: AppSettings | null = null;
@@ -107,6 +107,49 @@ export function createSettingsPanel(
             refresh();
         }
         break;
+      case 'exportSettings': {
+        const settings = getSettings();
+        const models = getAIModels();
+        const exportData = { settings, models, version: '0.1.0', timestamp: new Date().toISOString() };
+        
+        const uri = await vscode.window.showSaveDialog({
+          defaultUri: vscode.Uri.file('svn-audit-settings.json'),
+          filters: { 'JSON': ['json'] },
+          title: loc.exportSettings
+        });
+        
+        if (uri) {
+          await vscode.workspace.fs.writeFile(uri, Buffer.from(JSON.stringify(exportData, null, 2), 'utf8'));
+          vscode.window.showInformationMessage(loc.successSaved);
+        }
+        break;
+      }
+      case 'importSettings': {
+        const uris = await vscode.window.showOpenDialog({
+          canSelectFiles: true,
+          canSelectFolders: false,
+          canSelectMany: false,
+          filters: { 'JSON': ['json'] },
+          title: loc.importSettings
+        });
+        
+        if (uris && uris.length > 0) {
+          try {
+            const content = await vscode.workspace.fs.readFile(uris[0]);
+            const data = JSON.parse(Buffer.from(content).toString('utf8'));
+            importAllSettings(data, storagePath);
+            vscode.window.showInformationMessage(loc.importSuccess);
+            refresh();
+            
+            // Re-sync context key for language
+            const newLang = data.settings?.language || (vscode.env.language.startsWith('zh') ? 'zh' : 'en');
+            vscode.commands.executeCommand('setContext', 'svnAudit.isZh', newLang === 'zh');
+          } catch (err) {
+            vscode.window.showErrorMessage(loc.importError);
+          }
+        }
+        break;
+      }
     }
   });
 }
@@ -230,8 +273,12 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
         </select>
       </div>
 
-      <div class="button-group" style="margin-top: 40px;">
-        <button id="saveAllBtn" style="width: 100%; font-weight: bold; font-size: 1.1em;">${L.saveAll}</button>
+      <div class="button-group" style="margin-top: 40px; display: flex; flex-direction: column;">
+        <button id="saveAllBtn" style="font-weight: bold; font-size: 1.1em;">${L.saveAll}</button>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button id="exportSettingsBtn" class="secondary" style="flex: 1;">${L.exportSettings}</button>
+          <button id="importSettingsBtn" class="secondary" style="flex: 1;">${L.importSettings}</button>
+        </div>
       </div>
 
       <!-- Modal for Adding/Editing Models -->
@@ -389,6 +436,15 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
         // Save All
         document.getElementById('saveAllBtn').addEventListener('click', () => {
           vscode.postMessage({ command: 'save', settings: getSettingsFromUI() });
+        });
+
+        // Export/Import
+        document.getElementById('exportSettingsBtn').addEventListener('click', () => {
+          vscode.postMessage({ command: 'exportSettings' });
+        });
+
+        document.getElementById('importSettingsBtn').addEventListener('click', () => {
+          vscode.postMessage({ command: 'importSettings' });
         });
       </script>
     </body>

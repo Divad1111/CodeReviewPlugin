@@ -188,6 +188,21 @@
         "command": "svnAudit.aiAuditForce.zh",
         "title": "AI 代码审查 (强制分析)",
         "icon": "$(sparkle)"
+      },
+      {
+        "command": "svnAudit.exportAuthorReport.zh",
+        "title": "导出该作者报告",
+        "icon": "$(export)"
+      },
+      {
+        "command": "svnAudit.summarizeAuthor.zh",
+        "title": "该作者分析总结 (AI)",
+        "icon": "$(book)"
+      },
+      {
+        "command": "svnAudit.deleteAuthor.zh",
+        "title": "删除作者",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -283,6 +298,16 @@
           "command": "svnAudit.deleteAuthor.zh",
           "when": "view == svnAuditSidebar && viewItem == person && svnAudit.isZh",
           "group": "inline@3"
+        },
+        {
+          "command": "svnAudit.summarizeAuthor",
+          "when": "view == svnAuditSidebar && viewItem == person && !svnAudit.isZh",
+          "group": "inline@2"
+        },
+        {
+          "command": "svnAudit.summarizeAuthor.zh",
+          "when": "view == svnAuditSidebar && viewItem == person && svnAudit.isZh",
+          "group": "inline@2"
         },
         {
           "command": "svnAudit.aiAudit",

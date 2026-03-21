@@ -129,3 +129,31 @@ export function updateSettings(settings: AppSettings, storagePath: string): void
   saveDatabase(storagePath);
 }
 
+/**
+ * Import all settings and models from a JSON object.
+ */
+export function importAllSettings(data: any, storagePath: string): void {
+  const db = getDatabase();
+  
+  // 1. Update Global Settings
+  if (data.settings) {
+    updateSettings(data.settings, storagePath);
+  }
+
+  // 2. Update AI Models
+  if (Array.isArray(data.models)) {
+    // Keep only the default model from the DB, delete others
+    db.run('DELETE FROM AIModels WHERE is_default = 0');
+    
+    // Insert new models
+    for (const m of data.models) {
+      if (m.isDefault) {continue;}
+      db.run(
+        'INSERT INTO AIModels (id, name, endpoint, model_name, api_key, is_default) VALUES (?, ?, ?, ?, ?, 0)',
+        [crypto.randomUUID(), m.name, m.endpoint, m.modelName, m.apiKey || null]
+      );
+    }
+  }
+  saveDatabase(storagePath);
+}
+
