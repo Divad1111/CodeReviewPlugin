@@ -26,6 +26,8 @@ import { settingsCommand } from './commands/settingsCommand';
 import { editCommentCommand, deleteCommentCommand } from './commands/commentActions';
 import { ReviewLog, ReviewComment } from './svn/types';
 import { AuditTreeItem } from './ui/auditTreeProvider';
+import { getSettings } from './storage/settingsRepo';
+import { getLocalization } from './ui/localization';
 
 let storagePath: string;
 
@@ -204,10 +206,80 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.commands.registerCommand('svnAudit.openSettings', () =>
       settingsCommand(context.extensionUri, storagePath)
+    ),
+    vscode.commands.registerCommand('svnAudit.openSettings.zh', () =>
+      settingsCommand(context.extensionUri, storagePath)
     )
   );
 
+  // --- Shadow Command Registrations for ZH support ---
+  // These allow us to have localized titles/tooltips that follow our internal setting
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.newSession.zh', () =>
+      newSessionCommand(context.extensionUri, svnService, treeProvider, treeView, storagePath)
+    ),
+    vscode.commands.registerCommand('svnAudit.refresh.zh', () => {
+      contentProvider.clearCache();
+      treeProvider.refresh();
+    }),
+    vscode.commands.registerCommand('svnAudit.exportReport.zh', () =>
+      exportReportCommand(storagePath)
+    ),
+    vscode.commands.registerCommand('svnAudit.aiAudit.zh', (item: AuditTreeItem) =>
+      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false)
+    ),
+    vscode.commands.registerCommand('svnAudit.aiAuditSelectModel.zh', (item: AuditTreeItem) =>
+      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, true, false)
+    ),
+    vscode.commands.registerCommand('svnAudit.aiAuditForce.zh', (item: AuditTreeItem) =>
+      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false, true)
+    ),
+    vscode.commands.registerCommand('svnAudit.markReviewed.zh', (item: AuditTreeItem) =>
+      markReviewedCommand(item, treeProvider, storagePath)
+    ),
+    vscode.commands.registerCommand('svnAudit.markFlagged.zh', (item: AuditTreeItem) =>
+      markFlaggedCommand(item, treeProvider, storagePath)
+    ),
+    vscode.commands.registerCommand('svnAudit.addAuthorToSession.zh', (node: AuditTreeItem) =>
+      addAuthorCommand(node, svnService, treeProvider, storagePath)
+    ),
+    vscode.commands.registerCommand('svnAudit.renameSession.zh', (node) =>
+      renameSessionCommand(node, treeProvider, storagePath)
+    ),
+    vscode.commands.registerCommand('svnAudit.deleteSession.zh', async (item: AuditTreeItem) => {
+      if (!item?.sessionId) {return;}
+      const settings = getSettings();
+      const L = getLocalization(settings.language);
+      const confirm = await vscode.window.showWarningMessage(
+        L.deleteConfirm,
+        { modal: true },
+        'OK'
+      );
+      if (confirm === 'OK') {
+        deleteSession(item.sessionId, storagePath);
+        treeProvider.refresh();
+        vscode.window.showInformationMessage(L.modelDeleted);
+      }
+    }),
+    vscode.commands.registerCommand('svnAudit.addComment.zh', () =>
+      addCommentCommand(treeProvider, storagePath, diffManager)
+    )
+  );
+
+  // --- Initial Context & Refresh ---
+  updateLanguageContext();
+  treeProvider.refresh();
+
   console.log('[SVN Audit] Extension activated successfully.');
+}
+
+function updateLanguageContext(): void {
+  const settings = getSettings();
+  let lang = settings.language;
+  if (!lang) {
+    lang = vscode.env.language.startsWith('zh') ? 'zh' : 'en';
+  }
+  vscode.commands.executeCommand('setContext', 'svnAudit.isZh', lang === 'zh');
 }
 
 export function deactivate(): void {

@@ -1,0 +1,21 @@
+{
+    "svnAudit.newSession.title": "SVN 审计: 新建审计会话",
+    "svnAudit.refresh.title": "SVN 审计: 刷新",
+    "svnAudit.exportReport.title": "SVN 审计: 导出审计报告",
+    "svnAudit.addComment.title": "SVN 审计: 添加代码评论",
+    "svnAudit.markReviewed.title": "SVN 审计: 标记为已审计",
+    "svnAudit.markFlagged.title": "SVN 审计: 标记为需关注 (Flag)",
+    "svnAudit.aiAudit.title": "SVN 审计: AI 代码审查",
+    "svnAudit.aiAuditSelectModel.title": "SVN 审计: AI 代码审查 (选择模型)",
+    "svnAudit.aiAuditForce.title": "SVN 审计: AI 代码审查 (强制分析)",
+    "svnAudit.openSettings.title": "SVN 审计: 设置",
+    "svnAudit.openDiff.title": "SVN 审计: 打开差异对比",
+    "svnAudit.deleteSession.title": "SVN 审计: 删除会话",
+    "svnAudit.renameSession.title": "SVN 审计: 重命名会话",
+    "svnAudit.addAuthorToSession.title": "SVN 审计: 添加作者",
+    "svnAudit.deleteAuthor.title": "SVN 审计: 删除作者",
+    "svnAudit.exportAuthorReport.title": "SVN 审计: 导出该作者报告",
+    "svnAudit.summarizeAuthor.title": "SVN 审计: 该作者分析总结 (AI)",
+    "svnAudit.editComment.title": "SVN 审计: 编辑评论",
+    "svnAudit.deleteComment.title": "SVN 审计: 删除评论"
+}

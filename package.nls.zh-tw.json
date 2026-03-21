@@ -1,0 +1,21 @@
+{
+    "svnAudit.newSession.title": "SVN 審計: 新建審計會話",
+    "svnAudit.refresh.title": "SVN 審計: 刷新",
+    "svnAudit.exportReport.title": "SVN 審計: 匯出審計報告",
+    "svnAudit.addComment.title": "SVN 審計: 添加代碼評論",
+    "svnAudit.markReviewed.title": "SVN 審計: 標記為已審計",
+    "svnAudit.markFlagged.title": "SVN 審計: 標記為需關注 (Flag)",
+    "svnAudit.aiAudit.title": "SVN 審計: AI 代碼審查",
+    "svnAudit.aiAuditSelectModel.title": "SVN 審計: AI 代碼審查 (選擇模型)",
+    "svnAudit.aiAuditForce.title": "SVN 審計: AI 代碼審查 (強制分析)",
+    "svnAudit.openSettings.title": "SVN 審計: 設置",
+    "svnAudit.openDiff.title": "SVN 審計: 打開差異對比",
+    "svnAudit.deleteSession.title": "SVN 審計: 刪除會話",
+    "svnAudit.renameSession.title": "SVN 審計: 重命名會話",
+    "svnAudit.addAuthorToSession.title": "SVN 審計: 添加作者",
+    "svnAudit.deleteAuthor.title": "SVN 審計: 刪除作者",
+    "svnAudit.exportAuthorReport.title": "SVN 審計: 匯出該作者報告",
+    "svnAudit.summarizeAuthor.title": "SVN 審計: 該作者分析總結 (AI)",
+    "svnAudit.editComment.title": "SVN 審計: 編輯評論",
+    "svnAudit.deleteComment.title": "SVN 審計: 刪除評論"
+}

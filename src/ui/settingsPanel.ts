@@ -1,13 +1,17 @@
 import * as vscode from 'vscode';
 import { getSettings, updateSettings, AppSettings, getAIModels, upsertAIModel, deleteAIModel, AIModelConfig } from '../storage/settingsRepo';
+import { getLocalization } from './localization';
 
 export function createSettingsPanel(
   extensionUri: vscode.Uri,
   storagePath: string
 ): void {
+  const settings = getSettings();
+  const L = getLocalization(settings.language);
+
   const panel = vscode.window.createWebviewPanel(
     'svnAuditSettings',
-    'SVN Audit Settings',
+    L.settingsTitle,
     vscode.ViewColumn.One,
     {
       enableScripts: true,
@@ -17,35 +21,55 @@ export function createSettingsPanel(
   );
 
   const refresh = () => {
-    const settings = getSettings();
-    const models = getAIModels();
-    panel.webview.html = getHtmlForWebview(panel.webview, settings, models);
+    const s = getSettings();
+    const m = getAIModels();
+    const loc = getLocalization(s.language);
+    panel.title = loc.settingsTitle;
+    panel.webview.html = getHtmlForWebview(panel.webview, s, m, loc);
   };
 
   refresh();
 
   panel.webview.onDidReceiveMessage(async (message) => {
+    const loc = getLocalization(getSettings().language);
     switch (message.command) {
       case 'save':
         updateSettings(message.settings, storagePath);
-        vscode.window.showInformationMessage('Settings saved successfully.');
+        vscode.window.showInformationMessage(loc.successSaved);
+        
+        // Update context key for dynamic menus in package.json
+        const newLang = message.settings.language || (vscode.env.language.startsWith('zh') ? 'zh' : 'en');
+        vscode.commands.executeCommand('setContext', 'svnAudit.isZh', newLang === 'zh');
+        
+        refresh(); // Refresh to apply language change if any
         break;
       case 'addModel':
       case 'updateModel':
         upsertAIModel(message.model, storagePath, message.id);
-        vscode.window.showInformationMessage(`Model '${message.model.name}' ${message.command === 'addModel' ? 'added' : 'updated'}.`);
+        vscode.window.showInformationMessage(message.command === 'addModel' ? loc.modelAdded : loc.modelUpdated);
         refresh();
         break;
       case 'deleteModel':
         deleteAIModel(message.id, storagePath);
-        vscode.window.showInformationMessage('Model deleted.');
+        vscode.window.showInformationMessage(loc.modelDeleted);
         refresh();
+        break;
+      case 'alert':
+        vscode.window.showErrorMessage(message.text);
+        break;
+      case 'confirmDelete':
+        const ok = await vscode.window.showWarningMessage(loc.deleteConfirm, { modal: true }, 'OK');
+        if (ok === 'OK') {
+            deleteAIModel(message.id, storagePath);
+            vscode.window.showInformationMessage(loc.modelDeleted);
+            refresh();
+        }
         break;
     }
   });
 }
 
-function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, models: AIModelConfig[]): string {
+function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, models: AIModelConfig[], L: any): string {
   const modelOptions = models.map(m => `<option value="${m.name}" ${settings.aiModel === m.name ? 'selected' : ''}>${m.name}</option>`).join('');
   const modelData = JSON.stringify(models);
 
@@ -55,7 +79,7 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>SVN Audit Settings</title>
+      <title>${L.settingsTitle}</title>
       <style>
         body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); padding: 20px; }
         .form-group { margin-bottom: 20px; }
@@ -107,21 +131,21 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
       </style>
     </head>
     <body>
-      <h1>SVN Audit Settings</h1>
+      <h1>${L.settingsTitle}</h1>
       
-      <div class="section-title">SVN Credentials (Optional)</div>
+      <div class="section-title">${L.svnCredentials}</div>
       <div class="form-group">
-        <label>Username</label>
-        <input type="text" id="svnUsername" value="${settings.svnUsername || ''}" placeholder="Enter SVN username">
+        <label>${L.username}</label>
+        <input type="text" id="svnUsername" value="${settings.svnUsername || ''}" placeholder="${L.username}">
       </div>
       <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="svnPassword" value="${settings.svnPassword || ''}" placeholder="Enter SVN password">
+        <label>${L.password}</label>
+        <input type="password" id="svnPassword" value="${settings.svnPassword || ''}" placeholder="${L.password}">
       </div>
 
-      <div class="section-title">AI Engine</div>
+      <div class="section-title">${L.aiEngine}</div>
       <div class="form-group">
-        <label>Select Current Model</label>
+        <label>${L.currentModel}</label>
         <select id="currentModelSelect">
           ${modelOptions}
         </select>
@@ -129,59 +153,68 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
 
       <div style="background: var(--vscode-editorWidget-background); padding: 15px; border-radius: 4px; border: 1px solid var(--vscode-widget-border);">
         <div class="form-group">
-          <label>Endpoint</label>
+          <label>${L.endpoint}</label>
           <input type="text" id="modelEndpoint" readonly>
         </div>
         <div class="form-group">
-          <label>Model Name</label>
+          <label>${L.modelName}</label>
           <input type="text" id="modelNameInternal" readonly>
         </div>
         <div class="button-group">
-          <button id="addModelBtn" class="secondary">Add New Model</button>
-          <button id="editModelBtn" class="secondary">Edit Selected</button>
-          <button id="deleteModelBtn" class="danger">Delete Selected</button>
+          <button id="addModelBtn" class="secondary">${L.addNewModel}</button>
+          <button id="editModelBtn" class="secondary">${L.editSelected}</button>
+          <button id="deleteModelBtn" class="danger">${L.deleteSelected}</button>
         </div>
       </div>
 
-      <div class="section-title">Coding Standards</div>
+      <div class="section-title">${L.codingStandards}</div>
       <div class="form-group">
-        <label>Definition (Guidelines for naming, comments, logic checks, etc.)</label>
-        <textarea id="codingStandards" placeholder="Enter coding standards here...">${settings.codingStandards || ''}</textarea>
+        <label>${L.codingStandardsDesc}</label>
+        <textarea id="codingStandards" placeholder="${L.codingStandards}...">${settings.codingStandards || ''}</textarea>
       </div>
       
-      <div class="section-title">Other Settings</div>
+      <div class="section-title">${L.otherSettings}</div>
       <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
         <input type="checkbox" id="debugMode" ${settings.debugMode ? 'checked' : ''} style="width: auto;">
-        <label for="debugMode" style="margin-bottom: 0;">Enable AI Debug Mode (Log requests/responses to output channel)</label>
+        <label for="debugMode" style="margin-bottom: 0;">${L.debugMode}</label>
+      </div>
+
+      <div class="form-group">
+        <label>${L.language}</label>
+        <select id="languageSelect">
+          <option value="" ${!settings.language ? 'selected' : ''}>Default (Auto-detect)</option>
+          <option value="en" ${settings.language === 'en' ? 'selected' : ''}>English</option>
+          <option value="zh" ${settings.language === 'zh' ? 'selected' : ''}>简体中文</option>
+        </select>
       </div>
 
       <div class="button-group" style="margin-top: 40px;">
-        <button id="saveAllBtn" style="width: 100%; font-weight: bold; font-size: 1.1em;">Save All Settings</button>
+        <button id="saveAllBtn" style="width: 100%; font-weight: bold; font-size: 1.1em;">${L.saveAll}</button>
       </div>
 
       <!-- Modal for Adding/Editing Models -->
       <div id="modelModal">
         <div class="modal-content">
-          <h2 id="modalTitle">Add AI Model</h2>
+          <h2 id="modalTitle">${L.addModelTitle}</h2>
           <div class="form-group">
-            <label>Provider Name (e.g., OpenAI)</label>
+            <label>${L.providerName}</label>
             <input type="text" id="modalModelName" placeholder="Name">
           </div>
           <div class="form-group">
-            <label>Endpoint</label>
+            <label>${L.endpoint}</label>
             <input type="text" id="modalEndpoint" placeholder="https://api.openai.com/v1/chat/completions">
           </div>
           <div class="form-group">
-            <label>Model Name</label>
+            <label>${L.modelName}</label>
             <input type="text" id="modalModelInternal" placeholder="gpt-4o">
           </div>
           <div class="form-group">
-            <label>API Key</label>
+            <label>${L.apiKey}</label>
             <input type="password" id="modalApiKey" placeholder="sk-...">
           </div>
           <div class="button-group">
-            <button id="modalConfirmBtn">Confirm</button>
-            <button id="modalCancelBtn" class="secondary">Cancel</button>
+            <button id="modalConfirmBtn">${L.confirm}</button>
+            <button id="modalCancelBtn" class="secondary">${L.cancel}</button>
           </div>
         </div>
       </div>
@@ -218,7 +251,7 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
         const modal = document.getElementById('modelModal');
         document.getElementById('addModelBtn').addEventListener('click', () => {
           editingModelId = null;
-          document.getElementById('modalTitle').innerText = 'Add AI Model';
+          document.getElementById('modalTitle').innerText = '${L.addModelTitle}';
           document.getElementById('modalModelName').value = '';
           document.getElementById('modalModelName').readOnly = false;
           document.getElementById('modalEndpoint').value = '';
@@ -235,7 +268,7 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
           if (model) {
             editingModelId = model.id;
             const isDefault = model.isDefault;
-            document.getElementById('modalTitle').innerText = isDefault ? 'Edit Default Model (API Key only)' : 'Edit AI Model';
+            document.getElementById('modalTitle').innerText = isDefault ? '${L.editDefaultModelTitle}' : '${L.editModelTitle}';
             
             const nameInput = document.getElementById('modalModelName');
             nameInput.value = model.name;
@@ -247,7 +280,7 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
             
             const internalNameInput = document.getElementById('modalModelInternal');
             internalNameInput.value = model.modelName;
-            internalNameInput.readOnly = false; // Model name is now editable for all models
+            internalNameInput.readOnly = false;
             
             document.getElementById('modalApiKey').value = model.apiKey || '';
             modal.style.display = 'flex';
@@ -266,7 +299,8 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
             apiKey: document.getElementById('modalApiKey').value
           };
           if (!model.name || !model.endpoint || !model.modelName) {
-            return alert('All fields are required.');
+            vscode.postMessage({ command: 'alert', text: 'All fields are required.' });
+            return;
           }
           vscode.postMessage({ 
             command: editingModelId ? 'updateModel' : 'addModel', 
@@ -280,9 +314,7 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
           const selectedName = modelSelect.value;
           const model = models.find(m => m.name === selectedName);
           if (model && !model.isDefault) {
-             if (confirm('Are you sure you want to delete this model?')) {
-               vscode.postMessage({ command: 'deleteModel', id: model.id });
-             }
+             vscode.postMessage({ command: 'confirmDelete', id: model.id });
           }
         });
 
@@ -293,7 +325,8 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
             svnPassword: document.getElementById('svnPassword').value,
             aiModel: modelSelect.value,
             codingStandards: document.getElementById('codingStandards').value,
-            debugMode: document.getElementById('debugMode').checked
+            debugMode: document.getElementById('debugMode').checked,
+            language: document.getElementById('languageSelect').value
           };
           vscode.postMessage({ command: 'save', settings });
         });

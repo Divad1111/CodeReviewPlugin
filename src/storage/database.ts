@@ -178,15 +178,16 @@ function runMigrations(database: Database): void {
       ai_model TEXT,
       ai_api_key TEXT,
       coding_standards TEXT,
-      debug_mode INTEGER DEFAULT 0
+      debug_mode INTEGER DEFAULT 0,
+      language TEXT
     )
   `);
 
-  // Migration for Settings: add debug_mode column
+  // Migration for Settings: add language column
   try {
-    database.exec("SELECT debug_mode FROM Settings LIMIT 1");
+    database.exec("SELECT language FROM Settings LIMIT 1");
   } catch (e) {
-    database.run("ALTER TABLE Settings ADD COLUMN debug_mode INTEGER DEFAULT 0");
+    database.run("ALTER TABLE Settings ADD COLUMN language TEXT");
   }
 
   // Insert default row if empty

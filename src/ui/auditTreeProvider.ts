@@ -9,6 +9,8 @@ import { AuditSession, ReviewLog } from '../svn/types';
 import { getSessions } from '../storage/sessionRepo';
 import { getReviewLogsBySession } from '../storage/reviewRepo';
 import { getCommentCount, getCommentsByReviewLog } from '../storage/commentRepo';
+import { getSettings } from '../storage/settingsRepo';
+import { getLocalization } from './localization';
 
 export type AuditTreeItemType = 'session' | 'person' | 'file' | 'comment';
 
@@ -21,7 +23,7 @@ export class AuditTreeItem extends vscode.TreeItem {
     public readonly author?: string,
     public readonly reviewLog?: ReviewLog,
     public customTooltip?: string,
-    public readonly comment?: any // Will cast type during import later if needed, but any avoids coupling here if it wasn't required
+    public readonly comment?: any
   ) {
     super(label, collapsibleState);
     this.contextValue = itemType;
@@ -29,15 +31,18 @@ export class AuditTreeItem extends vscode.TreeItem {
   }
 
   private setupAppearance(): void {
+    const settings = getSettings();
+    const L = getLocalization(settings.language);
+
     switch (this.itemType) {
       case 'session': {
         this.iconPath = new vscode.ThemeIcon('folder-library');
-        this.tooltip = this.customTooltip || `Session: ${this.label}`;
+        this.tooltip = this.customTooltip || `${L.settingsTitle}: ${this.label}`;
         break;
       }
       case 'person': {
         this.iconPath = new vscode.ThemeIcon('person');
-        this.tooltip = `Author: ${this.label}`;
+        this.tooltip = this.label;
         break;
       }
       case 'file': {
@@ -45,7 +50,7 @@ export class AuditTreeItem extends vscode.TreeItem {
           const commentCount = getCommentCount(this.reviewLog.id);
           const statusIcon = this.getStatusIcon(this.reviewLog.status, commentCount, this.reviewLog.aiAudited);
           this.iconPath = statusIcon;
-          this.tooltip = `${this.reviewLog.filePath}\nStatus: ${this.reviewLog.status}${commentCount > 0 ? `\nComments: ${commentCount}` : ''}${this.reviewLog.aiAudited ? '\n(AI Audited)' : ''}`;
+          this.tooltip = `${this.reviewLog.filePath}\nStatus: ${this.reviewLog.status}${commentCount > 0 ? `\nComments: ${commentCount}` : ''}${this.reviewLog.aiAudited ? `\n(${L.aiAuditStart})` : ''}`;
 
           // Click opens diff view
           this.command = {
@@ -132,10 +137,7 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
     this.sessionItemsMap.clear();
 
     return sessions.map((s) => {
-      // 1. Short name for tree: "Name + EndDate"
       const label = `${s.name} (${s.endDate})`;
-      
-      // 2. Long name for tooltip: "Name + StartDate + EndDate + Authors"
       const authorList = s.authors.join(', ');
       const tooltip = `${s.name}\n${s.startDate} ↔ ${s.endDate}\nAuthors: ${authorList}`;
       

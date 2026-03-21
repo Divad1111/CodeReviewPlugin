@@ -8,6 +8,7 @@ import { addComment, deleteAiComments } from '../storage/commentRepo';
 import { AuditTreeDataProvider, AuditTreeItem } from '../ui/auditTreeProvider';
 import { DiffViewManager } from '../ui/diffViewManager';
 import { ReviewLog } from '../svn/types';
+import { getLocalization } from '../ui/localization';
 
 // Output channel for AI Audit logs
 const aiAuditChannel = vscode.window.createOutputChannel('SVN AI Audit');
@@ -27,13 +28,14 @@ export async function aiAuditCommand(
   const session = getSessionById(sessionId);
   if (!session) { return; }
 
+  const settings = getSettings();
+  const L = getLocalization(settings.language);
+
   // Req 1: If audited already and this is a single file, prevent re-analysis UNLESS forceAudit is true
   if (itemType === 'file' && reviewLog?.aiAudited && !selectModel && !forceAudit) {
-    vscode.window.showInformationMessage(`This file has already been audited by AI. Use the context menu (Force Audit) if you wish to re-audit.`);
+    vscode.window.showInformationMessage(L.alreadyAuditedMsg);
     return;
   }
-
-  const settings = getSettings();
   
   // Requirement 3: Model selection
   let config: AIModelConfig | null = null;
@@ -56,18 +58,18 @@ export async function aiAuditCommand(
   }
 
   if (!config) {
-    vscode.window.showErrorMessage(`AI Model configuration not found.`);
+    vscode.window.showErrorMessage(L.modelNotFound);
     return;
   }
 
   if (!config.apiKey) {
-    vscode.window.showErrorMessage(`AI API Key is missing for model '${config.name}'. Please set it in SVN Audit settings (Edit Model).`);
+    vscode.window.showErrorMessage(`${L.apiKeyMissing} (${config.name})`);
     return;
   }
 
   aiAuditChannel.clear();
   aiAuditChannel.show();
-  aiAuditChannel.appendLine(`[${new Date().toLocaleTimeString()}] Starting AI Audit`);
+  aiAuditChannel.appendLine(`[${new Date().toLocaleTimeString()}] ${L.aiAuditStart}`);
   aiAuditChannel.appendLine(`Session: ${session.name}`);
   aiAuditChannel.appendLine(`Model: ${config.name} (${config.modelName})`);
 
@@ -86,9 +88,9 @@ export async function aiAuditCommand(
     
     const skippedCount = allLogs.length - reviewLogs.length;
     if (skippedCount > 0 && !selectModel && !forceAudit) {
-      aiAuditChannel.appendLine(`Skipping ${skippedCount} files that were already AI-audited.`);
+      aiAuditChannel.appendLine(L.skippingAudited);
     } else if ((selectModel || forceAudit) && allLogs.length > 0) {
-      aiAuditChannel.appendLine(`Forcing re-analysis of all ${allLogs.length} files.`);
+      aiAuditChannel.appendLine(L.forcingReAudit);
     }
   }
 
@@ -172,12 +174,12 @@ export async function aiAuditCommand(
       }
 
       aiAuditChannel.appendLine(`\n==================================================`);
-      aiAuditChannel.appendLine(`AI Audit Complete.`);
+      aiAuditChannel.appendLine(L.aiAuditComplete);
       aiAuditChannel.appendLine(`Total files processed: ${filesProcessed}`);
       aiAuditChannel.appendLine(`Total comments added: ${totalComments}`);
 
       treeProvider.refresh();
-      vscode.window.showInformationMessage(`AI Audit complete! Processed ${filesProcessed} files.`);
+      vscode.window.showInformationMessage(L.aiAuditComplete);
     }
   );
 }
