@@ -1,8 +1,3 @@
-/**
- * Command: AI Audit
- * Analyzes an author's changes using AI and adds comments automatically.
- */
-
 import * as vscode from 'vscode';
 import { AIService } from '../ai/aiService';
 import { SvnService } from '../svn/svnService';
@@ -13,6 +8,9 @@ import { addComment } from '../storage/commentRepo';
 import { AuditTreeDataProvider, AuditTreeItem } from '../ui/auditTreeProvider';
 import { DiffViewManager } from '../ui/diffViewManager';
 
+// Output channel for AI Audit logs
+const aiAuditChannel = vscode.window.createOutputChannel('SVN AI Audit');
+
 export async function aiAuditCommand(
   item: AuditTreeItem,
   svnService: SvnService,
@@ -21,10 +19,10 @@ export async function aiAuditCommand(
   storagePath: string
 ): Promise<void> {
   const { sessionId, author } = item;
-  if (!sessionId || !author) {return;}
+  if (!sessionId || !author) { return; }
 
   const session = getSessionById(sessionId);
-  if (!session) {return;}
+  if (!session) { return; }
 
   const settings = getSettings();
   if (!settings.aiApiKey) {
@@ -32,8 +30,17 @@ export async function aiAuditCommand(
     return;
   }
 
+  aiAuditChannel.clear();
+  aiAuditChannel.show();
+  aiAuditChannel.appendLine(`[${new Date().toLocaleTimeString()}] Starting AI Audit for author: ${author}`);
+  aiAuditChannel.appendLine(`Session: ${session.name} (${session.startDate} to ${session.endDate})`);
+  aiAuditChannel.appendLine(`Model: ${settings.aiModel}`);
+
   const reviewLogs = getReviewLogsByAuthor(sessionId, author);
+  aiAuditChannel.appendLine(`Found ${reviewLogs.length} review log entries for this author.`);
+
   if (reviewLogs.length === 0) {
+    aiAuditChannel.appendLine('Nothing to analyze.');
     vscode.window.showInformationMessage(`No files found for author ${author}.`);
     return;
   }
@@ -51,20 +58,38 @@ export async function aiAuditCommand(
       let totalComments = 0;
 
       for (const rl of reviewLogs) {
-        if (token.isCancellationRequested) {break;}
+        if (token.isCancellationRequested) {
+          aiAuditChannel.appendLine('AI Audit canceled by user.');
+          break;
+        }
 
+        aiAuditChannel.appendLine(`\n--------------------------------------------------`);
+        aiAuditChannel.appendLine(`Analyzing file: ${rl.filePath}`);
         progress.report({ message: `Analyzing ${rl.filePath}...`, increment: (1 / reviewLogs.length) * 100 });
 
         try {
-          // 1. Get diff
-          if (!rl.baseRevision || !rl.endRevision) {continue;}
-          const diff = await svnService.getDiff(session.repoUrl, rl.baseRevision - 1, rl.endRevision);
+          if (!rl.baseRevision || !rl.endRevision) {
+            aiAuditChannel.appendLine(`Skipping: Missing revision information (r${rl.baseRevision}..r${rl.endRevision})`);
+            continue;
+          }
+
+          aiAuditChannel.appendLine(`Fetching diff for file (r${rl.baseRevision - 1} : r${rl.endRevision})...`);
+          const diff = await svnService.getDiffForFile(session.repoUrl, rl.filePath, rl.baseRevision - 1, rl.endRevision);
+
+          if (!diff.trim()) {
+            aiAuditChannel.appendLine('Skipping: Diff is empty.');
+            continue;
+          }
 
           // 2. Analyze with AI
+          aiAuditChannel.appendLine(`Calling AI (${settings.aiModel})...`);
           const results = await aiService.analyzeDiff(rl.filePath, diff, settings);
+
+          aiAuditChannel.appendLine(`AI suggested ${results.comments.length} comments.`);
 
           // 3. Add comments
           for (const c of results.comments) {
+            aiAuditChannel.appendLine(`  - [Line ${c.line}]: ${c.text}`);
             addComment(
               rl.id,
               c.line,
@@ -77,15 +102,19 @@ export async function aiAuditCommand(
           }
           filesProcessed++;
         } catch (err: any) {
+          aiAuditChannel.appendLine(`Error: ${err.message}`);
           console.error(`AI Analysis failed for ${rl.filePath}:`, err.message);
-          // Continue with next file
         }
       }
 
+      aiAuditChannel.appendLine(`\n==================================================`);
+      aiAuditChannel.appendLine(`AI Audit Complete.`);
+      aiAuditChannel.appendLine(`Total files processed: ${filesProcessed}`);
+      aiAuditChannel.appendLine(`Total comments added: ${totalComments}`);
+
       // 4. Refresh UI
       treeProvider.refresh();
-      
-      // Refresh decorations if we have an active editor for a file we just analyzed
+
       const editor = vscode.window.activeTextEditor;
       if (editor && editor.document.uri.scheme === 'svn-audit') {
         diffManager.refreshDecorations(editor);

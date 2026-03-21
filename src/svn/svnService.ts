@@ -29,18 +29,20 @@ async function execSvn(args: string[], cwd?: string): Promise<string> {
   }
 
   const fullArgs = ['--non-interactive', '--trust-server-cert', ...authArgs, ...args];
-  
+
   svnLogChannel.appendLine(`\n[${new Date().toLocaleTimeString()}] Executing: svn ${fullArgs.join(' ')}`);
 
   try {
-    // maxBuffer: 50MB (SVN logs and diffs can be large)
+    // maxBuffer: 100MB (SVN diffs for large files can be massive)
     const { stdout, stderr } = await execFileAsync('svn', fullArgs, {
       cwd,
       windowsHide: true,
-      maxBuffer: 1024 * 1024 * 50, 
-      timeout: 60000, // 60s timeout
+      maxBuffer: 1024 * 1024 * 100,
+      timeout: 120000, // 120s timeout
+      env: { ...process.env, LANG: 'en_US.UTF-8', LC_ALL: 'en_US.UTF-8' },
+      encoding: 'utf8'
     });
-    
+
     svnLogChannel.appendLine(`[${new Date().toLocaleTimeString()}] Completed successfully. (Output length: ${stdout.length} bytes)`);
     return stdout;
   } catch (err: any) {
@@ -91,9 +93,9 @@ export class SvnService {
       '-v', // verbose — include changed paths
       '-r', `{${startDate}}:{${endInclusiveStr}}`,
     ];
-    
+
     args.push(repoUrl);
-    
+
     const xml = await execSvn(args);
     return parseLogXml(xml);
   }
@@ -107,7 +109,24 @@ export class SvnService {
   }
 
   /**
-   * Get unified diff between two revisions.
+   * Get unified diff for a specific file between two revisions.
+   */
+  async getDiffForFile(repoUrl: string, filePath: string, revBase: number, revEnd: number): Promise<string> {
+    const root = await this.getRepoRoot(repoUrl);
+    const fullUrl = filePath.startsWith('/')
+      ? `${root}${filePath}`
+      : `${root}/${filePath}`;
+
+    const args = [
+      'diff',
+      '-r', `${revBase}:${revEnd}`,
+      fullUrl,
+    ];
+    return execSvn(args);
+  }
+
+  /**
+   * Get unified diff for an entire URL between two revisions.
    */
   async getDiff(repoUrl: string, revBase: number, revEnd: number): Promise<string> {
     const args = [
@@ -162,7 +181,7 @@ export class SvnService {
     const fullPath = filePath.startsWith('/')
       ? `${root}${filePath}`
       : `${root}/${filePath}`;
-    
+
     const args = [
       'cat',
       '-r', String(revision),
@@ -179,7 +198,7 @@ export class SvnService {
     const fullPath = filePath.startsWith('/')
       ? `${root}${filePath}`
       : `${root}/${filePath}`;
-      
+
     const args = [
       'blame',
       '--xml',
@@ -197,7 +216,7 @@ export class SvnService {
     const fullPath = filePath.startsWith('/')
       ? `${root}${filePath}`
       : `${root}/${filePath}`;
-      
+
     const args = [
       'blame',
       '--xml',
