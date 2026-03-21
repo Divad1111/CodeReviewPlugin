@@ -116,6 +116,11 @@
         "icon": "$(sparkle)"
       },
       {
+        "command": "svnAudit.aiAuditForce",
+        "title": "SVN Audit: AI Code Review (Force Default)",
+        "icon": "$(sparkle)"
+      },
+      {
         "command": "svnAudit.openSettings",
         "title": "SVN Audit: Settings",
         "icon": "$(settings-gear)"
@@ -186,6 +191,11 @@
           "group": "6_ai@1"
         },
         {
+          "command": "svnAudit.aiAuditForce",
+          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file)",
+          "group": "6_ai@2"
+        },
+        {
           "command": "svnAudit.addAuthorToSession",
           "when": "view == svnAuditSidebar && viewItem == session",
           "group": "inline@0"
@@ -214,11 +224,18 @@
       "editor/context": [
         {
           "command": "svnAudit.addComment",
-          "when": "resourceScheme == svn-audit",
+          "when": "resourceScheme == 'svn-audit'",
           "group": "svnAudit@1"
         }
       ]
-    }
+    },
+    "keybindings": [
+      {
+        "command": "svnAudit.addComment",
+        "key": "enter",
+        "when": "resourceScheme == 'svn-audit' && editorTextFocus"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run build",

@@ -18,7 +18,8 @@ export async function aiAuditCommand(
   treeProvider: AuditTreeDataProvider,
   diffManager: DiffViewManager,
   storagePath: string,
-  selectModel: boolean = false
+  selectModel: boolean = false,
+  forceAudit: boolean = false
 ): Promise<void> {
   const { sessionId, author, reviewLog, itemType } = item;
   if (!sessionId) { return; }
@@ -26,9 +27,9 @@ export async function aiAuditCommand(
   const session = getSessionById(sessionId);
   if (!session) { return; }
 
-  // Req 1: If audited already and this is a single file, prevent re-analysis
-  if (itemType === 'file' && reviewLog?.aiAudited && !selectModel) {
-    vscode.window.showInformationMessage(`This file has already been audited by AI. Use the context menu (Select Model) if you wish to re-audit.`);
+  // Req 1: If audited already and this is a single file, prevent re-analysis UNLESS forceAudit is true
+  if (itemType === 'file' && reviewLog?.aiAudited && !selectModel && !forceAudit) {
+    vscode.window.showInformationMessage(`This file has already been audited by AI. Use the context menu (Force Audit) if you wish to re-audit.`);
     return;
   }
 
@@ -80,13 +81,13 @@ export async function aiAuditCommand(
     const allLogs = getReviewLogsByAuthor(sessionId, author);
     
     // Filter out already audited files (Requirement 1)
-    // If selectModel is true, we force re-analysis (Requirement 3/Latest request)
-    reviewLogs = selectModel ? allLogs : allLogs.filter(rl => !rl.aiAudited);
+    // If selectModel or forceAudit is true, we force re-analysis
+    reviewLogs = (selectModel || forceAudit) ? allLogs : allLogs.filter(rl => !rl.aiAudited);
     
     const skippedCount = allLogs.length - reviewLogs.length;
-    if (skippedCount > 0 && !selectModel) {
+    if (skippedCount > 0 && !selectModel && !forceAudit) {
       aiAuditChannel.appendLine(`Skipping ${skippedCount} files that were already AI-audited.`);
-    } else if (selectModel && allLogs.length > 0) {
+    } else if ((selectModel || forceAudit) && allLogs.length > 0) {
       aiAuditChannel.appendLine(`Forcing re-analysis of all ${allLogs.length} files.`);
     }
   }
