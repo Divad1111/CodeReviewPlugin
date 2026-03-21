@@ -23,7 +23,7 @@ export async function newSessionCommand(
 
   // Open the webview panel for session config
   createNewSessionPanel(extensionUri, async (data) => {
-    const { command, name, repoUrl, authors: authorsStr, startDate, endDate, username, password, type, value } = data as any;
+    const { command, name, repoUrl, authors: authorsStr, startDate, endDate, type, value } = data as any;
 
     if (command === 'deleteHistory') {
       import('../storage/historyRepo').then(repo => repo.deleteHistory(type, value, storagePath));
@@ -52,7 +52,7 @@ export async function newSessionCommand(
         try {
           progress.report({ message: 'Querying SVN log...', increment: 0 });
 
-          const logEntries = await svnService.getLog(repoUrl, startDate, endDate, username, password);
+          const logEntries = await svnService.getLog(repoUrl, startDate, endDate);
 
           if (logEntries.length === 0) {
             vscode.window.showWarningMessage(

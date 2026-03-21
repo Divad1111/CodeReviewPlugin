@@ -160,4 +160,24 @@ function runMigrations(database: Database): void {
     CREATE INDEX IF NOT EXISTS idx_comments_reviewlog
     ON Comments(review_log_id)
   `);
+
+  // Settings table: store SVN and AI configuration
+  database.run(`
+    CREATE TABLE IF NOT EXISTS Settings (
+      id TEXT PRIMARY KEY,
+      svn_username TEXT,
+      svn_password TEXT,
+      ai_model TEXT,
+      ai_api_key TEXT,
+      coding_standards TEXT
+    )
+  `);
+
+  // Insert default row if empty
+  const hasSettings = database.exec("SELECT COUNT(*) FROM Settings WHERE id = 'global'");
+  if (hasSettings.length > 0 && hasSettings[0].values[0][0] === 0) {
+    database.run(
+      "INSERT INTO Settings (id, ai_model) VALUES ('global', 'DeepSeek')"
+    );
+  }
 }

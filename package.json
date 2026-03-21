@@ -104,6 +104,16 @@
         "command": "svnAudit.deleteAuthor",
         "title": "SVN Audit: Delete Author",
         "icon": "$(trash)"
+      },
+      {
+        "command": "svnAudit.aiAudit",
+        "title": "SVN Audit: AI Code Review",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "svnAudit.openSettings",
+        "title": "SVN Audit: Settings",
+        "icon": "$(settings-gear)"
       }
     ],
     "menus": {
@@ -122,6 +132,11 @@
           "command": "svnAudit.exportReport",
           "when": "view == svnAuditSidebar",
           "group": "navigation@3"
+        },
+        {
+          "command": "svnAudit.openSettings",
+          "when": "view == svnAuditSidebar",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
@@ -149,6 +164,11 @@
           "command": "svnAudit.deleteAuthor",
           "when": "view == svnAuditSidebar && viewItem == person",
           "group": "inline@3"
+        },
+        {
+          "command": "svnAudit.aiAudit",
+          "when": "view == svnAuditSidebar && viewItem == person",
+          "group": "inline@4"
         },
         {
           "command": "svnAudit.addAuthorToSession",

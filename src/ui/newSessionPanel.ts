@@ -13,7 +13,7 @@ import { getHistory } from '../storage/historyRepo';
  */
 export function createNewSessionPanel(
   extensionUri: vscode.Uri,
-  onSubmit: (data: { name: string; repoUrl: string; authors: string; startDate: string; endDate: string; username?: string; password?: string }) => void
+  onSubmit: (data: { name: string; repoUrl: string; authors: string; startDate: string; endDate: string }) => void
 ): vscode.WebviewPanel {
   const panel = vscode.window.createWebviewPanel(
     'svnAuditNewSession',
@@ -291,16 +291,7 @@ function getWebviewContent(
       </div>` : ''}
     </div>
 
-    <div class="form-group row date-row">
-      <div>
-        <label>Username <span class="hint">(optional)</span></label>
-        <input type="text" id="username" placeholder="SVN Username" />
-      </div>
-      <div>
-        <label>Password <span class="hint">(optional)</span></label>
-        <input type="password" id="password" placeholder="SVN Password" style="width: 100%; padding: 7px 10px; background: var(--input-bg); color: var(--input-fg); border: 1px solid var(--input-border); border-radius: 4px; font-size: 13px; outline: none; transition: border-color 0.15s;" onfocus="this.style.borderColor='var(--focus-border)'" onblur="this.style.borderColor='var(--input-border)'" />
-      </div>
-    </div>
+
 
     <div class="form-group">
       <label>Audit Authors <span class="hint">(press Enter or comma to add)</span></label>
@@ -434,8 +425,6 @@ function getWebviewContent(
 
       const sessionName = document.getElementById('sessionName').value.trim();
       const repoUrl = document.getElementById('repoUrl').value.trim();
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
 
@@ -454,7 +443,7 @@ function getWebviewContent(
 
       vscode.postMessage({
         command: 'submit',
-        data: { name: sessionName, repoUrl, authors: tags.join(', '), startDate, endDate, username, password }
+        data: { name: sessionName, repoUrl, authors: tags.join(', '), startDate, endDate }
       });
     });
 

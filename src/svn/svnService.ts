@@ -8,6 +8,7 @@ import * as util from 'util';
 import * as vscode from 'vscode';
 import { SvnLogEntry, BlameLine, DiffFile } from './types';
 import { parseLogXml, parseBlameXml, parseDiffUnified } from './svnParser';
+import { getSettings } from '../storage/settingsRepo';
 
 // Global output channel for debugging
 const svnLogChannel = vscode.window.createOutputChannel('SVN Audit Log');
@@ -18,7 +19,16 @@ const execFileAsync = util.promisify(cp.execFile);
  * Execute a shell command and return stdout as a string.
  */
 async function execSvn(args: string[], cwd?: string): Promise<string> {
-  const fullArgs = ['--non-interactive', '--trust-server-cert', ...args];
+  const settings = getSettings();
+  const authArgs = [];
+  if (settings.svnUsername) {
+    authArgs.push('--username', settings.svnUsername);
+  }
+  if (settings.svnPassword) {
+    authArgs.push('--password', settings.svnPassword);
+  }
+
+  const fullArgs = ['--non-interactive', '--trust-server-cert', ...authArgs, ...args];
   
   svnLogChannel.appendLine(`\n[${new Date().toLocaleTimeString()}] Executing: svn ${fullArgs.join(' ')}`);
 
@@ -68,7 +78,7 @@ export class SvnService {
    * Fetch SVN log entries for a given URL and date range.
    * Passing username/password here relies on SVN caching it automatically for the system.
    */
-  async getLog(repoUrl: string, startDate: string, endDate: string, username?: string, password?: string): Promise<SvnLogEntry[]> {
+  async getLog(repoUrl: string, startDate: string, endDate: string): Promise<SvnLogEntry[]> {
     // To make endDate inclusive without using spaces (which breaks PowerShell and SVN argv parsers on Windows),
     // we advance the endDate by one full day. e.g. "2026-03-20" -> "2026-03-21"
     const end = new Date(endDate);
@@ -81,13 +91,6 @@ export class SvnService {
       '-v', // verbose — include changed paths
       '-r', `{${startDate}}:{${endInclusiveStr}}`,
     ];
-    
-    if (username) {
-      args.push('--username', username);
-    }
-    if (password) {
-      args.push('--password', password);
-    }
     
     args.push(repoUrl);
     
