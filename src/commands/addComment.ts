@@ -40,8 +40,13 @@ export async function addCommentCommand(
     new vscode.Range(selection.start.line, 0, selection.end.line, Number.MAX_SAFE_INTEGER)
   );
 
+  // Extract parameters from URI
+  const params = new URLSearchParams(uri.query);
+  const reviewLogId = params.get('reviewLogId');
+  const revision = params.get('rev') || undefined;
+
   // Find the matching review log
-  const reviewLog = findReviewLogForFile(filePath);
+  const reviewLog = findReviewLogForFile(filePath, reviewLogId);
   if (!reviewLog) {
     vscode.window.showWarningMessage('Could not find a matching review log for this file. Make sure you opened this from the SVN Audit sidebar.');
     return;
@@ -60,9 +65,7 @@ export async function addCommentCommand(
 
   if (!commentText) {return;}
 
-  // Extract revision from URI query
-  const params = new URLSearchParams(uri.query);
-  const revision = params.get('rev') || undefined;
+  if (!commentText) {return;}
 
   // Save comment
   addComment(
@@ -84,14 +87,27 @@ export async function addCommentCommand(
 }
 
 /**
- * Find a review log that matches the given file path.
+ * Find a review log that matches the given file path or ID.
  */
-function findReviewLogForFile(filePath: string): { id: string } | null {
+function findReviewLogForFile(filePath: string, reviewLogId: string | null): { id: string } | null {
   const sessions = getSessions();
+  
+  // If we have an ID from the URI, use it directly (this is the most reliable way)
+  if (reviewLogId) {
+    // We could potentially just return { id: reviewLogId } if we trust it, 
+    // but verifying it exists and belongs to a session is safer.
+    for (const session of sessions) {
+      const reviewLogs = getReviewLogsBySession(session.id);
+      const found = reviewLogs.find(rl => rl.id === reviewLogId);
+      if (found) {return found;}
+    }
+  }
+
+  // Fallback to path matching (fuzzy context match)
   for (const session of sessions) {
     const reviewLogs = getReviewLogsBySession(session.id);
     for (const rl of reviewLogs) {
-      if (filePath.includes(rl.filePath) || rl.filePath.includes(filePath)) {
+      if (filePath === rl.filePath) {
         return rl;
       }
     }

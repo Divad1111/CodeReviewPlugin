@@ -115,13 +115,43 @@ export class SvnService {
     return parseDiffUnified(raw);
   }
 
+  private repoRootCache = new Map<string, string>();
+
+  /**
+   * Get the repository root for a given URL.
+   */
+  async getRepoRoot(repoUrl: string): Promise<string> {
+    if (this.repoRootCache.has(repoUrl)) {
+      return this.repoRootCache.get(repoUrl)!;
+    }
+
+    try {
+      const xml = await execSvn(['info', '--xml', repoUrl]);
+      // Simple string parsing to avoid full XML parser overhead here, 
+      // but let's use a regex to be safe with the structure.
+      const match = xml.match(/<root>(.*)<\/root>/);
+      if (match && match[1]) {
+        const root = match[1];
+        this.repoRootCache.set(repoUrl, root);
+        return root;
+      }
+    } catch (err) {
+      console.error('Failed to get repo root:', err);
+    }
+
+    // Fallback to the original URL if we can't get the root
+    return repoUrl;
+  }
+
   /**
    * Fetch file content at a specific revision using `svn cat`.
    */
   async getCat(repoUrl: string, filePath: string, revision: number): Promise<string> {
+    const root = await this.getRepoRoot(repoUrl);
     const fullPath = filePath.startsWith('/')
-      ? `${repoUrl}${filePath}`
-      : `${repoUrl}/${filePath}`;
+      ? `${root}${filePath}`
+      : `${root}/${filePath}`;
+    
     const args = [
       'cat',
       '-r', String(revision),
@@ -134,9 +164,11 @@ export class SvnService {
    * Get blame (annotate) information for a file at HEAD.
    */
   async getBlame(repoUrl: string, filePath: string): Promise<BlameLine[]> {
+    const root = await this.getRepoRoot(repoUrl);
     const fullPath = filePath.startsWith('/')
-      ? `${repoUrl}${filePath}`
-      : `${repoUrl}/${filePath}`;
+      ? `${root}${filePath}`
+      : `${root}/${filePath}`;
+      
     const args = [
       'blame',
       '--xml',
@@ -150,9 +182,11 @@ export class SvnService {
    * Get blame information for a file at a specific revision.
    */
   async getBlameAtRevision(repoUrl: string, filePath: string, revision: number): Promise<BlameLine[]> {
+    const root = await this.getRepoRoot(repoUrl);
     const fullPath = filePath.startsWith('/')
-      ? `${repoUrl}${filePath}`
-      : `${repoUrl}/${filePath}`;
+      ? `${root}${filePath}`
+      : `${root}/${filePath}`;
+      
     const args = [
       'blame',
       '--xml',

@@ -49,9 +49,13 @@ export class SvnContentProvider implements vscode.TextDocumentContentProvider {
   /**
    * Build a URI for the svn-audit scheme.
    */
-  static buildUri(filePath: string, revision: number, repoUrl: string): vscode.Uri {
+  static buildUri(filePath: string, revision: number, repoUrl: string, reviewLogId?: string): vscode.Uri {
+    let query = `rev=${revision}&repoUrl=${encodeURIComponent(repoUrl)}`;
+    if (reviewLogId) {
+      query += `&reviewLogId=${reviewLogId}`;
+    }
     return vscode.Uri.parse(
-      `svn-audit://${filePath}?rev=${revision}&repoUrl=${encodeURIComponent(repoUrl)}`
+      `svn-audit://${filePath}?${query}`
     );
   }
 }

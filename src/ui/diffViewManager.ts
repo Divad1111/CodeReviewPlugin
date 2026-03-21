@@ -64,12 +64,14 @@ export class DiffViewManager {
     const leftUri = SvnContentProvider.buildUri(
       reviewLog.filePath,
       reviewLog.baseRevision - 1, // Show the state BEFORE the author's first change
-      repoUrl
+      repoUrl,
+      reviewLog.id
     );
     const rightUri = SvnContentProvider.buildUri(
       reviewLog.filePath,
       reviewLog.endRevision,
-      repoUrl
+      repoUrl,
+      reviewLog.id
     );
 
     const title = `${reviewLog.filePath} (r${reviewLog.baseRevision - 1} ↔ r${reviewLog.endRevision})`;
