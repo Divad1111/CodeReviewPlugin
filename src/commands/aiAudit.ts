@@ -99,7 +99,7 @@ export async function aiAuditCommand(
   }
 
   const aiService = new AIService();
-  const logger = (msg: string) => aiAuditChannel.appendLine(msg);
+  const logger = settings.debugMode ? (msg: string) => aiAuditChannel.appendLine(msg) : undefined;
 
   await vscode.window.withProgress(
     {

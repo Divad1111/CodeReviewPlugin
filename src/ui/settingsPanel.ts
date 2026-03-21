@@ -148,6 +148,12 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
         <label>Definition (Guidelines for naming, comments, logic checks, etc.)</label>
         <textarea id="codingStandards" placeholder="Enter coding standards here...">${settings.codingStandards || ''}</textarea>
       </div>
+      
+      <div class="section-title">Other Settings</div>
+      <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+        <input type="checkbox" id="debugMode" ${settings.debugMode ? 'checked' : ''} style="width: auto;">
+        <label for="debugMode" style="margin-bottom: 0;">Enable AI Debug Mode (Log requests/responses to output channel)</label>
+      </div>
 
       <div class="button-group" style="margin-top: 40px;">
         <button id="saveAllBtn" style="width: 100%; font-weight: bold; font-size: 1.1em;">Save All Settings</button>
@@ -286,7 +292,8 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
             svnUsername: document.getElementById('svnUsername').value,
             svnPassword: document.getElementById('svnPassword').value,
             aiModel: modelSelect.value,
-            codingStandards: document.getElementById('codingStandards').value
+            codingStandards: document.getElementById('codingStandards').value,
+            debugMode: document.getElementById('debugMode').checked
           };
           vscode.postMessage({ command: 'save', settings });
         });

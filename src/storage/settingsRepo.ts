@@ -15,6 +15,7 @@ export interface AppSettings {
   svnPassword?: string;
   aiModel: string; // Current selected model name
   codingStandards?: string;
+  debugMode?: boolean;
 }
 
 /**
@@ -89,7 +90,7 @@ export function deleteAIModel(id: string, storagePath: string): void {
  */
 export function getSettings(): AppSettings {
   const db = getDatabase();
-  const results = db.exec("SELECT svn_username, svn_password, ai_model, coding_standards FROM Settings WHERE id = 'global'");
+  const results = db.exec("SELECT svn_username, svn_password, ai_model, coding_standards, debug_mode FROM Settings WHERE id = 'global'");
 
   if (results.length === 0 || results[0].values.length === 0) {
     return { aiModel: 'DeepSeek' };
@@ -101,6 +102,7 @@ export function getSettings(): AppSettings {
     svnPassword: (row[1] as string) || '',
     aiModel: (row[2] as string) || 'DeepSeek',
     codingStandards: (row[3] as string) || '',
+    debugMode: row[4] === 1,
   };
 }
 
@@ -111,13 +113,14 @@ export function updateSettings(settings: AppSettings, storagePath: string): void
   const db = getDatabase();
   db.run(
     `UPDATE Settings 
-     SET svn_username = ?, svn_password = ?, ai_model = ?, coding_standards = ?
+     SET svn_username = ?, svn_password = ?, ai_model = ?, coding_standards = ?, debug_mode = ?
      WHERE id = 'global'`,
     [
       settings.svnUsername || null,
       settings.svnPassword || null,
       settings.aiModel,
-      settings.codingStandards || null
+      settings.codingStandards || null,
+      settings.debugMode ? 1 : 0
     ]
   );
   saveDatabase(storagePath);

@@ -177,9 +177,17 @@ function runMigrations(database: Database): void {
       svn_password TEXT,
       ai_model TEXT,
       ai_api_key TEXT,
-      coding_standards TEXT
+      coding_standards TEXT,
+      debug_mode INTEGER DEFAULT 0
     )
   `);
+
+  // Migration for Settings: add debug_mode column
+  try {
+    database.exec("SELECT debug_mode FROM Settings LIMIT 1");
+  } catch (e) {
+    database.run("ALTER TABLE Settings ADD COLUMN debug_mode INTEGER DEFAULT 0");
+  }
 
   // Insert default row if empty
   const hasSettings = database.exec("SELECT COUNT(*) FROM Settings WHERE id = 'global'");
