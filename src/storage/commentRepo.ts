@@ -64,6 +64,15 @@ export function getCommentsByReviewLog(reviewLogId: string): ReviewComment[] {
 }
 
 /**
+ * Update the text of a comment.
+ */
+export function updateComment(commentId: string, newText: string, storagePath: string): void {
+  const db = getDatabase();
+  db.run('UPDATE Comments SET comment_text = ? WHERE id = ?', [newText, commentId]);
+  saveDatabase(storagePath);
+}
+
+/**
  * Delete a comment.
  */
 export function deleteComment(commentId: string, storagePath: string): void {

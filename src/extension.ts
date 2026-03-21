@@ -17,6 +17,7 @@ import { markReviewedCommand, markFlaggedCommand } from './commands/markReviewed
 import { exportReportCommand } from './commands/exportReport';
 import { deleteSession } from './storage/sessionRepo';
 import { renameSessionCommand } from './commands/renameSession';
+import { editCommentCommand, deleteCommentCommand } from './commands/commentActions';
 import { ReviewLog, ReviewComment } from './svn/types';
 import { AuditTreeItem } from './ui/auditTreeProvider';
 
@@ -127,6 +128,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.window.showInformationMessage('Session deleted.');
       }
     })
+  );
+
+  // Edit/Delete Comment
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.editComment', (item: AuditTreeItem) =>
+      editCommentCommand(item, treeProvider, storagePath, diffManager)
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.deleteComment', (item: AuditTreeItem) =>
+      deleteCommentCommand(item, treeProvider, storagePath, diffManager)
+    )
   );
 
   // Rename Session
