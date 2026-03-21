@@ -48,8 +48,8 @@ export function upsertReviewLog(
   };
 
   db.run(
-    `INSERT INTO ReviewLogs (id, session_id, file_path, author, status, base_revision, end_revision)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO ReviewLogs (id, session_id, file_path, author, status, base_revision, end_revision, ai_audited)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
     [reviewLog.id, reviewLog.sessionId, reviewLog.filePath, reviewLog.author, reviewLog.status,
      reviewLog.baseRevision ?? null, reviewLog.endRevision ?? null]
   );
@@ -64,7 +64,7 @@ export function upsertReviewLog(
 export function getReviewLogById(id: string): ReviewLog | null {
   const db = getDatabase();
   const results = db.exec(
-    'SELECT id, session_id, file_path, author, status, reviewed_at, base_revision, end_revision FROM ReviewLogs WHERE id = ?',
+    'SELECT id, session_id, file_path, author, status, reviewed_at, base_revision, end_revision, ai_audited FROM ReviewLogs WHERE id = ?',
     [id]
   );
 
@@ -80,7 +80,7 @@ export function getReviewLogById(id: string): ReviewLog | null {
 export function getReviewLogsBySession(sessionId: string): ReviewLog[] {
   const db = getDatabase();
   const results = db.exec(
-    'SELECT id, session_id, file_path, author, status, reviewed_at, base_revision, end_revision FROM ReviewLogs WHERE session_id = ? ORDER BY author, file_path',
+    'SELECT id, session_id, file_path, author, status, reviewed_at, base_revision, end_revision, ai_audited FROM ReviewLogs WHERE session_id = ? ORDER BY author, file_path',
     [sessionId]
   );
 
@@ -94,7 +94,7 @@ export function getReviewLogsBySession(sessionId: string): ReviewLog[] {
 export function getReviewLogsByAuthor(sessionId: string, author: string): ReviewLog[] {
   const db = getDatabase();
   const results = db.exec(
-    'SELECT id, session_id, file_path, author, status, reviewed_at, base_revision, end_revision FROM ReviewLogs WHERE session_id = ? AND author = ? ORDER BY file_path',
+    'SELECT id, session_id, file_path, author, status, reviewed_at, base_revision, end_revision, ai_audited FROM ReviewLogs WHERE session_id = ? AND author = ? ORDER BY file_path',
     [sessionId, author]
   );
 
@@ -137,6 +137,22 @@ export function deleteReviewLogsByAuthor(sessionId: string, author: string, stor
   saveDatabase(storagePath);
 }
 
+/**
+ * Update the AI audit status of a file.
+ */
+export function updateAiAuditStatus(
+  reviewLogId: string,
+  audited: boolean,
+  storagePath: string
+): void {
+  const db = getDatabase();
+  db.run(
+    'UPDATE ReviewLogs SET ai_audited = ? WHERE id = ?',
+    [audited ? 1 : 0, reviewLogId]
+  );
+  saveDatabase(storagePath);
+}
+
 function mapRowToReviewLog(row: any[]): ReviewLog {
   return {
     id: row[0] as string,
@@ -147,5 +163,6 @@ function mapRowToReviewLog(row: any[]): ReviewLog {
     reviewedAt: row[5] as string | undefined,
     baseRevision: row[6] as number | undefined,
     endRevision: row[7] as number | undefined,
+    aiAudited: row[8] === 1,
   };
 }

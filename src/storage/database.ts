@@ -122,9 +122,17 @@ function runMigrations(database: Database): void {
       reviewed_at TEXT,
       base_revision INTEGER,
       end_revision INTEGER,
+      ai_audited INTEGER DEFAULT 0,
       FOREIGN KEY (session_id) REFERENCES Sessions(id) ON DELETE CASCADE
     )
   `);
+
+  // Migration for existing databases to add ai_audited column
+  try {
+    database.exec('SELECT ai_audited FROM ReviewLogs LIMIT 1');
+  } catch (e) {
+    database.run('ALTER TABLE ReviewLogs ADD COLUMN ai_audited INTEGER DEFAULT 0');
+  }
 
   database.run(`
     CREATE TABLE IF NOT EXISTS Comments (

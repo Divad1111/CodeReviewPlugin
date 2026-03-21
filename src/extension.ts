@@ -184,7 +184,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   context.subscriptions.push(
     vscode.commands.registerCommand('svnAudit.aiAudit', (item: AuditTreeItem) =>
-      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath)
+      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false)
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.aiAuditSelectModel', (item: AuditTreeItem) =>
+      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, true)
     )
   );
 

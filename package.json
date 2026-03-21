@@ -111,6 +111,11 @@
         "icon": "$(sparkle)"
       },
       {
+        "command": "svnAudit.aiAuditSelectModel",
+        "title": "SVN Audit: AI Code Review (Select Model)",
+        "icon": "$(sparkle)"
+      },
+      {
         "command": "svnAudit.openSettings",
         "title": "SVN Audit: Settings",
         "icon": "$(settings-gear)"
@@ -151,6 +156,11 @@
           "group": "inline@2"
         },
         {
+          "command": "svnAudit.aiAudit",
+          "when": "view == svnAuditSidebar && viewItem == file",
+          "group": "inline@3"
+        },
+        {
           "command": "svnAudit.exportAuthorReport",
           "when": "view == svnAuditSidebar && viewItem == person",
           "group": "inline@1"
@@ -169,6 +179,11 @@
           "command": "svnAudit.aiAudit",
           "when": "view == svnAuditSidebar && viewItem == person",
           "group": "inline@4"
+        },
+        {
+          "command": "svnAudit.aiAuditSelectModel",
+          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file)",
+          "group": "6_ai@1"
         },
         {
           "command": "svnAudit.addAuthorToSession",

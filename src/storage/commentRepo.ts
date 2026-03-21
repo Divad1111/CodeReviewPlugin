@@ -82,6 +82,15 @@ export function deleteComment(commentId: string, storagePath: string): void {
 }
 
 /**
+ * Delete all AI-generated comments for a review log.
+ */
+export function deleteAiComments(reviewLogId: string, storagePath: string): void {
+  const db = getDatabase();
+  db.run('DELETE FROM Comments WHERE review_log_id = ? AND comment_text LIKE ?', [reviewLogId, '[🤖 AI]%']);
+  saveDatabase(storagePath);
+}
+
+/**
  * Get the count of comments for a review log.
  */
 export function getCommentCount(reviewLogId: string): number {

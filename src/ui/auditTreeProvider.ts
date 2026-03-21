@@ -43,9 +43,9 @@ export class AuditTreeItem extends vscode.TreeItem {
       case 'file': {
         if (this.reviewLog) {
           const commentCount = getCommentCount(this.reviewLog.id);
-          const statusIcon = this.getStatusIcon(this.reviewLog.status, commentCount);
+          const statusIcon = this.getStatusIcon(this.reviewLog.status, commentCount, this.reviewLog.aiAudited);
           this.iconPath = statusIcon;
-          this.tooltip = `${this.reviewLog.filePath}\nStatus: ${this.reviewLog.status}${commentCount > 0 ? `\nComments: ${commentCount}` : ''}`;
+          this.tooltip = `${this.reviewLog.filePath}\nStatus: ${this.reviewLog.status}${commentCount > 0 ? `\nComments: ${commentCount}` : ''}${this.reviewLog.aiAudited ? '\n(AI Audited)' : ''}`;
 
           // Click opens diff view
           this.command = {
@@ -72,7 +72,7 @@ export class AuditTreeItem extends vscode.TreeItem {
     }
   }
 
-  private getStatusIcon(status: string, commentCount: number): vscode.ThemeIcon {
+  private getStatusIcon(status: string, commentCount: number, aiAudited?: boolean): vscode.ThemeIcon {
     if (status === 'approved') {
       return new vscode.ThemeIcon('check', new vscode.ThemeColor('charts.green'));
     }
@@ -81,6 +81,9 @@ export class AuditTreeItem extends vscode.TreeItem {
     }
     if (commentCount > 0) {
       return new vscode.ThemeIcon('comment', new vscode.ThemeColor('charts.yellow'));
+    }
+    if (aiAudited) {
+      return new vscode.ThemeIcon('sparkle', new vscode.ThemeColor('charts.blue'));
     }
     return new vscode.ThemeIcon('circle-outline');
   }

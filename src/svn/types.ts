@@ -85,6 +85,7 @@ export interface ReviewLog {
   reviewedAt?: string;
   baseRevision?: number;
   endRevision?: number;
+  aiAudited?: boolean;
 }
 
 /** A review comment on a specific line */

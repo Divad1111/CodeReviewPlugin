@@ -15,17 +15,20 @@ export class AIService {
   async analyzeDiff(
     filePath: string,
     diff: string,
-    standards: string
+    standards: string,
+    logger?: (msg: string) => void,
+    configOverride?: { endpoint: string; modelName: string; apiKey?: string }
   ): Promise<AIAnalysisResult> {
     const settings = getSettings();
-    const config = getAIModelByName(settings.aiModel);
+    const config = configOverride || getAIModelByName(settings.aiModel);
 
     if (!config) {
       throw new Error(`AI Model '${settings.aiModel}' not found.`);
     }
 
     if (!config.apiKey) {
-      throw new Error(`API Key for model '${config.name}' is not configured.`);
+      const modelDisplayName = (config as any).name || 'Override';
+      throw new Error(`API Key for model '${modelDisplayName}' is not configured.`);
     }
 
     const prompt = this.buildPrompt(filePath, diff, standards || 'Check for bugs and common naming issues.');
@@ -38,6 +41,22 @@ export class AIService {
       endpoint = endpoint.replace(/\/$/, '') + '/chat/completions';
     }
 
+    const requestBody = {
+      model: modelName,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a senior code reviewer. Analyze the provided diff and return a valid JSON object with a "comments" array. Each comment MUST have "line" (number, relative to the diff or file), "text" (string), and optional "codeSnippet". Focus on coding standards and bugs. Return ONLY JSON.'
+        },
+        { role: 'user', content: prompt }
+      ],
+      response_format: { type: 'json_object' }
+    };
+
+    if (logger) {
+      logger(`>>> AI REQUEST to ${endpoint}:\n${JSON.stringify(requestBody, null, 2)}`);
+    }
+
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -45,25 +64,19 @@ export class AIService {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${config.apiKey}`
         },
-        body: JSON.stringify({
-          model: modelName,
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a senior code reviewer. Analyze the provided diff and return a valid JSON object with a "comments" array. Each comment MUST have "line" (number, relative to the diff or file), "text" (string), and optional "codeSnippet". Focus on coding standards and bugs. Return ONLY JSON.'
-            },
-            { role: 'user', content: prompt }
-          ],
-          response_format: { type: 'json_object' }
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
         const errText = await response.text();
+        if (logger) { logger(`<<< AI ERROR (${response.status}): ${errText}`); }
         throw new Error(`AI API error (${response.status}): ${errText}`);
       }
 
       const data: any = await response.json();
+      if (logger) {
+        logger(`<<< AI RESPONSE:\n${JSON.stringify(data, null, 2)}`);
+      }
       const content = data.choices[0].message.content;
       return JSON.parse(content) as AIAnalysisResult;
     } catch (err: any) {
