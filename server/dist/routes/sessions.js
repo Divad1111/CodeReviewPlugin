@@ -24,16 +24,15 @@ router.get('/', async (req, res) => {
         const { username, roles, parentReviewer } = req.user;
         let sessions = [];
         const query = { $or: [] };
+        const currentUsernameLower = username.toLowerCase();
         // 1. If user is a reviewer, they can see sessions they created
         if (roles.includes('reviewer')) {
-            query.$or.push({ ownerUsername: username });
+            query.$or.push({ ownerUsername: { $regex: new RegExp(`^${currentUsernameLower}$`, 'i') } });
         }
-        // 2. If user is a reviewee, they can see sessions where they are an author 
-        // (owned by their parent reviewer)
-        if (roles.includes('reviewee') && parentReviewer) {
+        // 2. If user is a reviewee, they can see sessions where they are an author
+        if (roles.includes('reviewee')) {
             query.$or.push({
-                ownerUsername: parentReviewer,
-                authors: username,
+                authors: { $regex: new RegExp(`^${currentUsernameLower}$`, 'i') },
             });
         }
         // Fallback for standalone/unexpected cases
