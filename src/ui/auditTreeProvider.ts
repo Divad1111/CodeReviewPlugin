@@ -262,10 +262,27 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
   }
 
   private async getFileNodes(sessionId: string, author: string): Promise<AuditTreeItem[]> {
-    const reviewLogs = getReviewLogsBySession(sessionId)
-      .filter(r => r.author === author);
+    const reviewLogs = getReviewLogsBySession(sessionId).filter(r => r.author === author);
+    const settings = getSettings();
+    const excludeInput = settings.excludePatterns || '';
+    const excludePatterns = excludeInput.split(',').map((p: string) => p.trim()).filter((p: string) => p.length > 0);
 
-    return reviewLogs.map((rl) => {
+    const filteredLogs = reviewLogs.filter(log => {
+      if (excludePatterns.length === 0) {return true;}
+      const filename = path.basename(log.filePath);
+      
+      return !excludePatterns.some((pattern: string) => {
+        // Convert glob-like *.ext to simple regex
+        const regexStr = pattern
+          .replace(/\./g, '\\.')
+          .replace(/\*/g, '.*')
+          .replace(/\?/g, '.');
+        const regex = new RegExp(`^${regexStr}$`, 'i');
+        return regex.test(filename);
+      });
+    });
+
+    return filteredLogs.map((rl) => {
       const cacheKey = `file:${rl.id}`;
       if (this.itemCache.has(cacheKey)) {return this.itemCache.get(cacheKey)!;}
 

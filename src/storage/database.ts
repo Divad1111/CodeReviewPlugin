@@ -190,6 +190,13 @@ function runMigrations(database: Database): void {
     database.run("ALTER TABLE Settings ADD COLUMN language TEXT");
   }
 
+  // Migration for Settings: add exclude_patterns column
+  try {
+    database.exec("SELECT exclude_patterns FROM Settings LIMIT 1");
+  } catch (e) {
+    database.run("ALTER TABLE Settings ADD COLUMN exclude_patterns TEXT");
+  }
+
   // Insert default row if empty
   const hasSettings = database.exec("SELECT COUNT(*) FROM Settings WHERE id = 'global'");
   if (hasSettings.length > 0 && hasSettings[0].values[0][0] === 0) {

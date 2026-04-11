@@ -50,6 +50,9 @@ export interface LocalizedStrings {
     importSuccess: string;
     importError: string;
     reviewResult: string;
+    fileFiltering: string;
+    fileFilteringDesc: string;
+    deleteFile: string;
 }
 
 const en: LocalizedStrings = {
@@ -100,6 +103,9 @@ const en: LocalizedStrings = {
     importSuccess: "Settings imported successfully.",
     importError: "Failed to import settings. Invalid file format.",
     reviewResult: "Review Result",
+    fileFiltering: "File Filtering",
+    fileFilteringDesc: "Exclude files by name (e.g. *.meta, *.prefab)",
+    deleteFile: "Remove file from review",
 };
 
 const zh: LocalizedStrings = {
@@ -150,6 +156,9 @@ const zh: LocalizedStrings = {
     importSuccess: "配置导入成功。",
     importError: "配置导入失败。请检查文件格式是否正确。",
     reviewResult: "审核结果",
+    fileFiltering: "文件过滤",
+    fileFilteringDesc: "通过文件名模糊匹配过滤（如：*.meta, *.prefab）",
+    deleteFile: "从本次审核中移除文件",
 };
 
 export function getLocalization(lang?: string): LocalizedStrings {

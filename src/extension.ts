@@ -26,6 +26,7 @@ import { settingsCommand } from './commands/settingsCommand';
 import { editCommentCommand, deleteCommentCommand } from './commands/commentActions';
 import { jumpToSourceCommand } from './commands/jumpToSource';
 import { editSummaryCommand } from './commands/editSummary';
+import { deleteFileCommand } from './commands/deleteFile';
 import { ReviewLog, ReviewComment } from './svn/types';
 import { AuditTreeItem } from './ui/auditTreeProvider';
 import { getSettings } from './storage/settingsRepo';
@@ -113,6 +114,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.commands.registerCommand('svnAudit.markFlagged', (item: AuditTreeItem) =>
       markFlaggedCommand(item, treeProvider, storagePath)
+    )
+  );
+
+  // Delete File
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.deleteFile', (item: AuditTreeItem) =>
+      deleteFileCommand(item, treeProvider, storagePath)
     )
   );
 
@@ -263,6 +271,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     vscode.commands.registerCommand('svnAudit.markFlagged.zh', (item: AuditTreeItem) =>
       markFlaggedCommand(item, treeProvider, storagePath)
+    ),
+    vscode.commands.registerCommand('svnAudit.deleteFile.zh', (item: AuditTreeItem) =>
+      deleteFileCommand(item, treeProvider, storagePath)
     ),
     vscode.commands.registerCommand('svnAudit.addAuthorToSession.zh', (node: AuditTreeItem) =>
       addAuthorCommand(node, svnService, treeProvider, storagePath)

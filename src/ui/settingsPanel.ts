@@ -257,6 +257,12 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
         <label>${L.codingStandardsDesc}</label>
         <textarea id="codingStandards" placeholder="${L.codingStandards}...">${settings.codingStandards || ''}</textarea>
       </div>
+
+      <div class="section-title">${L.fileFiltering}</div>
+      <div class="form-group">
+        <label>${L.fileFilteringDesc}</label>
+        <input type="text" id="excludePatterns" value="${settings.excludePatterns || ''}" placeholder="*.meta, *.prefab">
+      </div>
       
       <div class="section-title">${L.otherSettings}</div>
       <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
@@ -319,6 +325,7 @@ function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, model
             svnPassword: document.getElementById('svnPassword').value,
             aiModel: document.getElementById('currentModelSelect').value,
             codingStandards: document.getElementById('codingStandards').value,
+            excludePatterns: document.getElementById('excludePatterns').value,
             debugMode: document.getElementById('debugMode').checked,
             language: document.getElementById('languageSelect').value
           };

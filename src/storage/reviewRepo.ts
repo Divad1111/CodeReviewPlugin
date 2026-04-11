@@ -120,6 +120,17 @@ export function updateReviewStatus(
 }
 
 /**
+ * Delete a specific review log entry and its associated comments.
+ */
+export function deleteReviewLog(id: string, storagePath: string): void {
+  const db = getDatabase();
+  // Delete comments first due to foreign key (or relies on ON DELETE CASCADE if supported)
+  db.run('DELETE FROM Comments WHERE review_log_id = ?', [id]);
+  db.run('DELETE FROM ReviewLogs WHERE id = ?', [id]);
+  saveDatabase(storagePath);
+}
+
+/**
  * Delete all review logs (and their comments) for a specific author in a session.
  */
 export function deleteReviewLogsByAuthor(sessionId: string, author: string, storagePath: string): void {

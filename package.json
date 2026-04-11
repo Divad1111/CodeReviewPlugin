@@ -141,6 +141,11 @@
         "icon": "$(go-to-file)"
       },
       {
+        "command": "svnAudit.deleteFile",
+        "title": "%svnAudit.deleteFile.title%",
+        "icon": "$(trash)"
+      },
+      {
         "command": "svnAudit.newSession.zh",
         "title": "新建审计会话",
         "icon": "$(add)"
@@ -240,6 +245,11 @@
         "icon": "$(note)"
       },
       {
+        "command": "svnAudit.deleteFile.zh",
+        "title": "从本次审核中移除文件",
+        "icon": "$(trash)"
+      },
+      {
         "command": "svnAudit.jumpToSource.zh",
         "title": "跳转到源文件",
         "icon": "$(go-to-file)"
@@ -318,6 +328,16 @@
           "command": "svnAudit.aiAudit.zh",
           "when": "view == svnAuditSidebar && viewItem == file && svnAudit.isZh",
           "group": "inline@3"
+        },
+        {
+          "command": "svnAudit.deleteFile",
+          "when": "view == svnAuditSidebar && viewItem == file && !svnAudit.isZh",
+          "group": "inline@0"
+        },
+        {
+          "command": "svnAudit.deleteFile.zh",
+          "when": "view == svnAuditSidebar && viewItem == file && svnAudit.isZh",
+          "group": "inline@0"
         },
         {
           "command": "svnAudit.exportAuthorReport",
