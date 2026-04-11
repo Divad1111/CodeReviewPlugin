@@ -220,4 +220,16 @@ function runMigrations(database: Database): void {
       [id, 'DeepSeek', 'https://api.deepseek.com/v1/chat/completions', 'deepseek-chat', 1]
     );
   }
+
+  database.run(`
+    CREATE TABLE IF NOT EXISTS ReviewSummaries (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      author TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(session_id, author),
+      FOREIGN KEY (session_id) REFERENCES Sessions(id) ON DELETE CASCADE
+    )
+  `);
 }

@@ -12,6 +12,7 @@
     "svnAudit.aiAuditForce.title": "SVN Audit: AI Code Review (Force Default)",
     "svnAudit.aiAuditFull.title": "SVN Audit: AI Code Review (Full Analysis)",
     "svnAudit.jumpToSource.title": "Jump to Source File",
+    "svnAudit.editSummary.title": "Edit Review Summary",
     "svnAudit.openSettings.title": "SVN Audit: Settings",
     "svnAudit.openDiff.title": "SVN Audit: Open Diff View",
     "svnAudit.deleteSession.title": "SVN Audit: Delete Session",

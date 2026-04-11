@@ -25,6 +25,7 @@ import { aiAuditCommand } from './commands/aiAudit';
 import { settingsCommand } from './commands/settingsCommand';
 import { editCommentCommand, deleteCommentCommand } from './commands/commentActions';
 import { jumpToSourceCommand } from './commands/jumpToSource';
+import { editSummaryCommand } from './commands/editSummary';
 import { ReviewLog, ReviewComment } from './svn/types';
 import { AuditTreeItem } from './ui/auditTreeProvider';
 import { getSettings } from './storage/settingsRepo';
@@ -186,6 +187,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.editSummary', (item: AuditTreeItem) =>
+      editSummaryCommand(item, treeProvider, storagePath, context.extensionUri)
+    )
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('svnAudit.aiAudit', (item: AuditTreeItem) =>
       aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false)
     )
@@ -286,6 +293,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     vscode.commands.registerCommand('svnAudit.summarizeAuthor.zh', (item: AuditTreeItem) =>
       summarizeAuthorCommand(item, svnService)
+    ),
+    vscode.commands.registerCommand('svnAudit.editSummary.zh', (item: AuditTreeItem) =>
+      editSummaryCommand(item, treeProvider, storagePath, context.extensionUri)
     ),
     vscode.commands.registerCommand('svnAudit.deleteAuthor.zh', (item: AuditTreeItem) =>
       deleteAuthorCommand(item, treeProvider, storagePath)

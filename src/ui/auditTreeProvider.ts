@@ -11,8 +11,9 @@ import { getReviewLogsBySession } from '../storage/reviewRepo';
 import { getCommentCount, getCommentsByReviewLog } from '../storage/commentRepo';
 import { getSettings } from '../storage/settingsRepo';
 import { getLocalization } from './localization';
+import { getSummary } from '../storage/summaryRepo';
 
-export type AuditTreeItemType = 'session' | 'person' | 'file' | 'comment';
+export type AuditTreeItemType = 'session' | 'person' | 'file' | 'comment' | 'summary';
 
 export class AuditTreeItem extends vscode.TreeItem {
   constructor(
@@ -74,6 +75,13 @@ export class AuditTreeItem extends vscode.TreeItem {
         }
         break;
       }
+      case 'summary': {
+        this.iconPath = new vscode.ThemeIcon('checklist', new vscode.ThemeColor('debugIcon.stepOverForeground'));
+        this.tooltip = this.customTooltip || this.label;
+        this.description = this.customTooltip ? (this.customTooltip.length > 30 ? this.customTooltip.substring(0, 30) + '...' : this.customTooltip) : '';
+        this.contextValue = 'summaryNode';
+        break;
+      }
     }
   }
 
@@ -130,7 +138,7 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
           children = await this.getPersonNodes(element.sessionId!);
           break;
         case 'person':
-          children = await this.getFileNodes(element.sessionId!, element.author!);
+          children = await this.getPersonChildren(element.sessionId!, element.author!);
           break;
         case 'file':
           if (element.reviewLog) {
@@ -195,6 +203,42 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
       this.itemCache.set(cacheKey, item);
       return item;
     });
+  }
+
+  private async getPersonChildren(sessionId: string, author: string): Promise<AuditTreeItem[]> {
+    const children: AuditTreeItem[] = [];
+    const settings = getSettings();
+    const L = getLocalization(settings.language);
+
+    // 1. Add Summary if exists
+    const summary = getSummary(sessionId, author);
+    if (summary) {
+      const cacheKey = `summary:${sessionId}:${author}`;
+      const label = L.reviewResult;
+      
+      let item: AuditTreeItem;
+      if (this.itemCache.has(cacheKey)) {
+        item = this.itemCache.get(cacheKey)!;
+      } else {
+        item = new AuditTreeItem(
+          label,
+          'summary',
+          vscode.TreeItemCollapsibleState.None,
+          sessionId,
+          author,
+          undefined,
+          summary.summary
+        );
+        this.itemCache.set(cacheKey, item);
+      }
+      children.push(item);
+    }
+
+    // 2. Add Files
+    const files = await this.getFileNodes(sessionId, author);
+    children.push(...files);
+
+    return children;
   }
 
   private async getPersonNodes(sessionId: string): Promise<AuditTreeItem[]> {

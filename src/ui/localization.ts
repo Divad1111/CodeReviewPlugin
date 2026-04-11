@@ -49,6 +49,7 @@ export interface LocalizedStrings {
     importSettings: string;
     importSuccess: string;
     importError: string;
+    reviewResult: string;
 }
 
 const en: LocalizedStrings = {
@@ -98,6 +99,7 @@ const en: LocalizedStrings = {
     importSettings: "Import Config",
     importSuccess: "Settings imported successfully.",
     importError: "Failed to import settings. Invalid file format.",
+    reviewResult: "Review Result",
 };
 
 const zh: LocalizedStrings = {
@@ -147,6 +149,7 @@ const zh: LocalizedStrings = {
     importSettings: "导入配置",
     importSuccess: "配置导入成功。",
     importError: "配置导入失败。请检查文件格式是否正确。",
+    reviewResult: "审核结果",
 };
 
 export function getLocalization(lang?: string): LocalizedStrings {
