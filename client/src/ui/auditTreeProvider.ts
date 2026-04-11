@@ -243,10 +243,12 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
 
   private async getPersonNodes(sessionId: string): Promise<AuditTreeItem[]> {
     const provider = StorageContext.getProvider();
-    const reviewLogs = await provider.getReviewLogsBySession(sessionId);
-    const authors = new Set(reviewLogs.map(r => r.author));
+    const session = await provider.getSessionById(sessionId);
+    if (!session) { return []; }
 
-    return Array.from(authors).sort().map((author) => {
+    const authors = session.authors || [];
+
+    return authors.sort().map((author) => {
       const cacheKey = `person:${sessionId}:${author}`;
       if (this.itemCache.has(cacheKey)) { return this.itemCache.get(cacheKey)!; }
 

@@ -1,0 +1,6 @@
+/**
+ * Input history routes.
+ */
+declare const router: import("express-serve-static-core").Router;
+export default router;
+//# sourceMappingURL=history.d.ts.map

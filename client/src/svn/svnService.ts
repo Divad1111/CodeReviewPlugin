@@ -10,6 +10,7 @@ import { SvnLogEntry, BlameLine, DiffFile } from './types';
 import { parseLogXml, parseBlameXml, parseDiffUnified } from './svnParser';
 import { getSettings } from '../storage/settingsRepo';
 import { VcsProvider } from '../vcs/vcsProvider';
+import { StorageContext } from '../storage/storageContext';
 
 // Global output channel for debugging
 const svnLogChannel = vscode.window.createOutputChannel('SVN Audit Log');
@@ -22,11 +23,21 @@ const execFileAsync = util.promisify(cp.execFile);
 async function execSvn(args: string[], cwd?: string, skipAuth = false): Promise<string> {
   const authArgs = [];
   if (!skipAuth) {
-    const settings = getSettings();
-    if (settings.svnUsername) {
+    let settings: any;
+    try {
+      if (StorageContext.hasProvider()) {
+        settings = await StorageContext.getProvider().getSettings();
+      } else {
+        settings = getSettings();
+      }
+    } catch (e) {
+      settings = getSettings(); // Fallback to local
+    }
+
+    if (settings && settings.svnUsername) {
       authArgs.push('--username', settings.svnUsername);
     }
-    if (settings.svnPassword) {
+    if (settings && settings.svnPassword) {
       authArgs.push('--password', settings.svnPassword);
     }
   }

@@ -17,10 +17,10 @@ export async function newSessionCommand(
   treeProvider: AuditTreeDataProvider,
   treeView: vscode.TreeView<any>,
   storagePath: string
-): Promise<void> {
+): Promise<vscode.WebviewPanel | undefined> {
 
   // Open the webview panel for session config
-  createNewSessionPanel(extensionUri, async (data) => {
+  return createNewSessionPanel(extensionUri, async (data) => {
     const { command, name, repoUrl, authors: authorsStr, startDate, endDate, type, value } = data as any;
 
     const provider = StorageContext.getProvider();

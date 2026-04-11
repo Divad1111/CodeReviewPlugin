@@ -1,0 +1,1 @@
+{"version":3,"file":"InputHistory.d.ts","sourceRoot":"","sources":["../../src/models/InputHistory.ts"],"names":[],"mappings":"AAAA;;GAEG;AAEH,OAAO,QAAQ,EAAE,EAAU,QAAQ,EAAE,MAAM,UAAU,CAAC;AAEtD,MAAM,WAAW,gBAAiB,SAAQ,QAAQ;IAChD,IAAI,EAAE,UAAU,GAAG,QAAQ,CAAC;IAC5B,KAAK,EAAE,MAAM,CAAC;IACd,MAAM,EAAE,MAAM,CAAC;IACf,aAAa,EAAE,MAAM,CAAC;CACvB;AAYD,eAAO,MAAM,YAAY;;;;OAAuE,CAAC"}

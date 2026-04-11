@@ -10,42 +10,41 @@ let isDirty = false;
  * Create the settings panel.
  * @param revieweeMode If true, only show SVN credentials, language, and action buttons.
  */
-export function createSettingsPanel(
+export async function createSettingsPanel(
   extensionUri: vscode.Uri,
   storagePath: string,
   initialDraft?: AppSettings,
   revieweeMode: boolean = false
-): void {
-  const settingsPromise = initialDraft
-    ? Promise.resolve(initialDraft)
-    : StorageContext.getProvider().getSettings();
+): Promise<vscode.WebviewPanel> {
+  const settings = initialDraft
+    ? initialDraft
+    : await StorageContext.getProvider().getSettings();
 
-  settingsPromise.then(async (settings) => {
-    const L = getLocalization(settings.language);
-    currentDraft = { ...settings };
-    isDirty = !!initialDraft;
+  const L = getLocalization(settings.language);
+  currentDraft = { ...settings };
+  isDirty = !!initialDraft;
 
-    const panel = vscode.window.createWebviewPanel(
-      'svnAuditSettings',
-      L.settingsTitle,
-      vscode.ViewColumn.One,
-      {
-        enableScripts: true,
-        localResourceRoots: [extensionUri],
-        retainContextWhenHidden: true,
-      }
-    );
+  const panel = vscode.window.createWebviewPanel(
+    'svnAuditSettings',
+    L.settingsTitle,
+    vscode.ViewColumn.One,
+    {
+      enableScripts: true,
+      localResourceRoots: [extensionUri],
+      retainContextWhenHidden: true,
+    }
+  );
 
-    const refresh = async () => {
-      const provider = StorageContext.getProvider();
-      const s = currentDraft || await provider.getSettings();
-      const m = revieweeMode ? [] : await provider.getAIModels();
-      const loc = getLocalization(s.language);
-      panel.title = loc.settingsTitle;
-      panel.webview.html = getHtmlForWebview(panel.webview, s, m, loc, revieweeMode);
-    };
+  const refresh = async () => {
+    const provider = StorageContext.getProvider();
+    const s = currentDraft || await provider.getSettings();
+    const m = revieweeMode ? [] : await provider.getAIModels();
+    const loc = getLocalization(s.language);
+    panel.title = loc.settingsTitle;
+    panel.webview.html = getHtmlForWebview(panel.webview, s, m, loc, revieweeMode);
+  };
 
-    await refresh();
+  await refresh();
 
     panel.onDidDispose(async () => {
       if (isDirty && currentDraft) {
@@ -162,7 +161,8 @@ export function createSettingsPanel(
         }
       }
     });
-  });
+  // Removed old closing brace
+  return panel;
 }
 
 function getHtmlForWebview(webview: vscode.Webview, settings: AppSettings, models: AIModelConfig[], L: any, revieweeMode: boolean): string {

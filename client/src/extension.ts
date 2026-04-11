@@ -43,6 +43,20 @@ let svnService: SvnService;
 let diffManager: DiffViewManager;
 let contentProvider: SvnContentProvider;
 
+let authSpecificPanels: vscode.WebviewPanel[] = [];
+
+function registerAuthPanel(panel: vscode.WebviewPanel) {
+  authSpecificPanels.push(panel);
+  panel.onDidDispose(() => {
+    authSpecificPanels = authSpecificPanels.filter(p => p !== panel);
+  });
+}
+
+function disposeAuthPanels() {
+  authSpecificPanels.forEach(p => p.dispose());
+  authSpecificPanels = [];
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   console.log('[SVN Audit] Activating extension...');
 
@@ -97,6 +111,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         'OK'
       );
       if (confirm === 'OK') {
+        disposeAuthPanels();
         await authManager.logout();
         StorageContext.clearProvider();
         closeDatabase();
@@ -115,12 +130,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('svnAudit.userManagement', () => {
       const state = authManager.getAuthState();
       if (state.mode === 'server' && state.serverUrl && state.token) {
-        createUserManagementPanel(
+        const panel = createUserManagementPanel(
           context.extensionUri,
           state.serverUrl,
           state.token,
           undefined // will auto-detect language
         );
+        registerAuthPanel(panel);
       }
     }),
     vscode.commands.registerCommand('svnAudit.userManagement.zh', () =>
@@ -130,9 +146,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // New Session
   context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.newSession', () =>
-      newSessionCommand(context.extensionUri, svnService, treeProvider, treeView, storagePath)
-    )
+    vscode.commands.registerCommand('svnAudit.newSession', async () => {
+      const panel = await newSessionCommand(context.extensionUri, svnService, treeProvider, treeView, storagePath);
+      if (panel) { registerAuthPanel(panel); }
+    })
   );
 
   // Refresh
@@ -288,18 +305,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // Settings
   context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.openSettings', () =>
-      settingsCommand(context.extensionUri, storagePath)
-    ),
+    vscode.commands.registerCommand('svnAudit.openSettings', () => {
+      const panel = settingsCommand(context.extensionUri, storagePath);
+      if (panel) { registerAuthPanel(panel); }
+    }),
     vscode.commands.registerCommand('svnAudit.openSettings.zh', () =>
-      settingsCommand(context.extensionUri, storagePath)
+      vscode.commands.executeCommand('svnAudit.openSettings')
     )
   );
 
   // --- Shadow Command Registrations for ZH support ---
   context.subscriptions.push(
     vscode.commands.registerCommand('svnAudit.newSession.zh', () =>
-      newSessionCommand(context.extensionUri, svnService, treeProvider, treeView, storagePath)
+      vscode.commands.executeCommand('svnAudit.newSession')
     ),
     vscode.commands.registerCommand('svnAudit.refresh.zh', () => {
       contentProvider.clearCache();

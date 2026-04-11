@@ -18,10 +18,10 @@ function isRevieweeMode(): boolean {
   }
 }
 
-export function settingsCommand(
+export async function settingsCommand(
   extensionUri: vscode.Uri,
   storagePath: string,
   revieweeMode: boolean = false
-): void {
-  createSettingsPanel(extensionUri, storagePath, undefined, revieweeMode);
+): Promise<vscode.WebviewPanel | undefined> {
+  return createSettingsPanel(extensionUri, storagePath, undefined, revieweeMode);
 }

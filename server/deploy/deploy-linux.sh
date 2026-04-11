@@ -55,8 +55,8 @@ fi
 
 # Install pm2 if not available
 if ! command -v pm2 &> /dev/null; then
-    echo "[*] Installing pm2 globally..."
-    npm install -g pm2
+    echo "[*] Installing pm2 globally (may require password)..."
+    sudo npm install -g pm2
 fi
 
 # Start with pm2
