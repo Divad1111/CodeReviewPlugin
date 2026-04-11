@@ -39,7 +39,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // --- Initialize SVN Service ---
   const svnService = new SvnService();
-  const svnAvailable = await svnService.checkSvn();
+  const svnAvailable = await svnService.checkAvailable();
   if (!svnAvailable) {
     // Show the sidebar anyway, but functionality will be limited
     console.warn('[SVN Audit] SVN not found in PATH.');

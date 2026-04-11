@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 import { SvnLogEntry, BlameLine, DiffFile } from './types';
 import { parseLogXml, parseBlameXml, parseDiffUnified } from './svnParser';
 import { getSettings } from '../storage/settingsRepo';
+import { VcsProvider } from '../vcs/vcsProvider';
 
 // Global output channel for debugging
 const svnLogChannel = vscode.window.createOutputChannel('SVN Audit Log');
@@ -56,12 +57,12 @@ async function execSvn(args: string[], cwd?: string, skipAuth = false): Promise<
   }
 }
 
-export class SvnService {
+export class SvnService extends VcsProvider {
   /**
    * Check if SVN CLI is available in PATH.
    * Shows an error message if not found.
    */
-  async checkSvn(): Promise<boolean> {
+  async checkAvailable(): Promise<boolean> {
     try {
       await execSvn(['--version', '--quiet'], undefined, true);
       return true;
@@ -114,7 +115,7 @@ export class SvnService {
   /**
    * Get unified diff for a specific file between two revisions.
    */
-  async getDiffForFile(repoUrl: string, filePath: string, revBase: number, revEnd: number): Promise<string> {
+  async getDiffForFile(repoUrl: string, filePath: string, revBase: string | number, revEnd: string | number): Promise<string> {
     const root = await this.getRepoRoot(repoUrl);
     const fullUrl = filePath.startsWith('/')
       ? `${root}${filePath}`
@@ -131,7 +132,7 @@ export class SvnService {
   /**
    * Get unified diff for an entire URL between two revisions.
    */
-  async getDiff(repoUrl: string, revBase: number, revEnd: number): Promise<string> {
+  async getDiff(repoUrl: string, revBase: string | number, revEnd: string | number): Promise<string> {
     const args = [
       'diff',
       '-r', `${revBase}:${revEnd}`,
@@ -143,7 +144,7 @@ export class SvnService {
   /**
    * Get parsed diff files between two revisions.
    */
-  async getDiffParsed(repoUrl: string, revBase: number, revEnd: number): Promise<DiffFile[]> {
+  async getDiffParsed(repoUrl: string, revBase: string | number, revEnd: string | number): Promise<DiffFile[]> {
     const raw = await this.getDiff(repoUrl, revBase, revEnd);
     return parseDiffUnified(raw);
   }
@@ -179,7 +180,7 @@ export class SvnService {
   /**
    * Fetch file content at a specific revision using `svn cat`.
    */
-  async getCat(repoUrl: string, filePath: string, revision: number): Promise<string> {
+  async getCat(repoUrl: string, filePath: string, revision: string | number): Promise<string> {
     const root = await this.getRepoRoot(repoUrl);
     const fullPath = filePath.startsWith('/')
       ? `${root}${filePath}`
@@ -214,7 +215,7 @@ export class SvnService {
   /**
    * Get blame information for a file at a specific revision.
    */
-  async getBlameAtRevision(repoUrl: string, filePath: string, revision: number): Promise<BlameLine[]> {
+  async getBlameAtRevision(repoUrl: string, filePath: string, revision: string | number): Promise<BlameLine[]> {
     const root = await this.getRepoRoot(repoUrl);
     const fullPath = filePath.startsWith('/')
       ? `${root}${filePath}`
