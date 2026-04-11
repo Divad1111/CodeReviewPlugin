@@ -18,6 +18,19 @@ if %ERRORLEVEL% NEQ 0 (
 for /f "tokens=1 delims=v." %%a in ('node -v') do set NODE_MAJOR=%%a
 echo [OK] Node.js found
 
+REM Check MongoDB
+where mongod >nul 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    where mongosh >nul 2>nul
+    if %ERRORLEVEL% NEQ 0 (
+        echo [WARN] MongoDB is not detected locally.
+        echo Please install MongoDB before deployment.
+        echo Winget example: winget install MongoDB.Server
+        echo Chocolatey example: choco install mongodb
+        echo Guide: https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-windows/
+    )
+)
+
 REM Get server directory
 set SCRIPT_DIR=%~dp0
 set SERVER_DIR=%SCRIPT_DIR%..

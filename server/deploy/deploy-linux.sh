@@ -29,8 +29,10 @@ echo "[OK] Node.js $(node -v) found"
 # Check MongoDB
 if ! command -v mongod &> /dev/null && ! command -v mongosh &> /dev/null; then
     echo "[WARN] MongoDB is not detected locally."
-    echo "Make sure MongoDB is running and accessible."
-    echo "Install MongoDB: https://docs.mongodb.com/manual/installation/"
+    echo "Please install MongoDB before deployment."
+    echo "Ubuntu/Debian example: sudo apt-get install -y mongodb-org"
+    echo "CentOS/RHEL example: sudo yum install -y mongodb-org"
+    echo "Guide: https://www.mongodb.com/docs/manual/administration/install-on-linux/"
 fi
 
 # Install dependencies

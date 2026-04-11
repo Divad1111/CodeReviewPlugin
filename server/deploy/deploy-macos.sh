@@ -29,8 +29,10 @@ echo "[OK] Node.js $(node -v) found"
 # Check MongoDB
 if ! command -v mongod &> /dev/null && ! command -v mongosh &> /dev/null; then
     echo "[WARN] MongoDB is not detected locally."
+    echo "Please install MongoDB before deployment."
     echo "Install via Homebrew: brew tap mongodb/brew && brew install mongodb-community"
-    echo "Start: brew services start mongodb-community"
+    echo "Start service: brew services start mongodb-community"
+    echo "Guide: https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-os-x/"
 fi
 
 # Install dependencies
