@@ -131,6 +131,11 @@
         "icon": "$(settings-gear)"
       },
       {
+        "command": "svnAudit.jumpToSource",
+        "title": "%svnAudit.jumpToSource.title%",
+        "icon": "$(go-to-file)"
+      },
+      {
         "command": "svnAudit.newSession.zh",
         "title": "新建审计会话",
         "icon": "$(add)"
@@ -223,6 +228,11 @@
         "command": "svnAudit.deleteAuthor.zh",
         "title": "删除作者",
         "icon": "$(trash)"
+      },
+      {
+        "command": "svnAudit.jumpToSource.zh",
+        "title": "跳转到源文件",
+        "icon": "$(go-to-file)"
       }
     ],
     "menus": {
@@ -450,6 +460,16 @@
           "command": "svnAudit.deleteComment.zh",
           "when": "resourceScheme == 'svn-audit' && svnAudit.isZh",
           "group": "svnAudit@3"
+        },
+        {
+          "command": "svnAudit.jumpToSource",
+          "when": "resourceScheme == 'svn-audit' && !svnAudit.isZh",
+          "group": "svnAudit@4"
+        },
+        {
+          "command": "svnAudit.jumpToSource.zh",
+          "when": "resourceScheme == 'svn-audit' && svnAudit.isZh",
+          "group": "svnAudit@4"
         }
       ]
     },

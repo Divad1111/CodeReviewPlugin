@@ -229,4 +229,24 @@ export class SvnService {
     const xml = await execSvn(args);
     return parseBlameXml(xml);
   }
+
+  /**
+   * Get basic SVN info for a local path or URL.
+   */
+  async getInfo(localPath: string): Promise<{ repositoryRoot: string; relativeUrl: string; url: string } | null> {
+    try {
+      const xml = await execSvn(['info', '--xml', localPath]);
+      const rootMatch = xml.match(/<root>(.*)<\/root>/);
+      const urlMatch = xml.match(/<url>(.*)<\/url>/);
+      const relativeMatch = xml.match(/<relative-url>(.*)<\/relative-url>/);
+
+      return {
+        repositoryRoot: rootMatch ? rootMatch[1] : '',
+        url: urlMatch ? urlMatch[1] : '',
+        relativeUrl: relativeMatch ? relativeMatch[1] : ''
+      };
+    } catch (err) {
+      return null;
+    }
+  }
 }
