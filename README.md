@@ -21,6 +21,56 @@
 3.  **Audit**: Expand the session, select a file, and press `Enter` to add a comment in the Diff view.
 4.  **Export**: Click the **Export** button next to a session or person to save the report.
 
+### 🖥️ Server Mode & Deployment
+If you want team members to share data (sessions/comments/summaries), deploy the backend server in the `server/` directory and configure the extension to use server mode.
+
+#### Option A: One-click Script Deployment
+- **macOS**
+```bash
+cd server/deploy
+bash deploy-macos.sh
+```
+- **Linux**
+```bash
+cd server/deploy
+bash deploy-linux.sh
+```
+- **Windows (CMD)**
+```bat
+cd server\deploy
+deploy-windows.bat
+```
+
+The deploy scripts will:
+- Check Node.js (18+) and MongoDB availability.
+- Install dependencies and build TypeScript output.
+- Create `.env` from `.env.example` if missing.
+- Start server using `pm2` with process name `code-review-server`.
+
+#### Option B: Docker Compose Deployment
+```bash
+cd server/deploy
+docker compose up -d --build
+```
+
+This starts:
+- `mongodb` on port `27017`
+- `code-review-server` on port `3000`
+
+#### Environment Variables (`server/.env`)
+- `PORT=3000`
+- `MONGODB_URI=mongodb://localhost:27017/code_review` (local mode)
+- `JWT_SECRET=your-secret-key-change-this` (change in production)
+- `JWT_EXPIRES_IN=7d`
+
+#### Verify Server Status
+- Health endpoint: `http://localhost:3000/api/health`
+- PM2 status (script deploy): `pm2 status`
+- Docker status (compose deploy): `docker compose ps`
+
+#### Connect Extension to Server
+Open extension settings and enable server mode, then set the server base URL (for example: `http://localhost:3000`).
+
 ---
 
 <h2 id="chinese">中文</h2>
@@ -39,6 +89,56 @@
 2.  **创建会话**：点击标题栏的 **+** 按钮。输入 SVN 地址、人员列表及时间范围。
 3.  **开始审计**：在侧边栏选中文件，点击打开 Diff 视图，按 `Enter` 键添加评论。
 4.  **导出结果**：点击会话或人员旁的 **导出 (Export)** 按钮即可生成报告。
+
+### 🖥️ 服务器模式与部署
+如果你希望团队成员共享会话、评论和总结数据，可部署 `server/` 目录下的后端服务，并在插件中启用服务器模式。
+
+#### 方案 A：脚本一键部署
+- **macOS**
+```bash
+cd server/deploy
+bash deploy-macos.sh
+```
+- **Linux**
+```bash
+cd server/deploy
+bash deploy-linux.sh
+```
+- **Windows (CMD)**
+```bat
+cd server\deploy
+deploy-windows.bat
+```
+
+脚本会自动完成：
+- 检查 Node.js（18+）与 MongoDB 是否可用。
+- 安装依赖并构建 TypeScript。
+- 若不存在 `.env`，会从 `.env.example` 自动生成。
+- 使用 `pm2` 启动服务，进程名为 `code-review-server`。
+
+#### 方案 B：Docker Compose 部署
+```bash
+cd server/deploy
+docker compose up -d --build
+```
+
+该方式会启动：
+- `mongodb`（端口 `27017`）
+- `code-review-server`（端口 `3000`）
+
+#### 环境变量（`server/.env`）
+- `PORT=3000`
+- `MONGODB_URI=mongodb://localhost:27017/code_review`（本地模式）
+- `JWT_SECRET=your-secret-key-change-this`（生产环境请务必修改）
+- `JWT_EXPIRES_IN=7d`
+
+#### 部署后验证
+- 健康检查：`http://localhost:3000/api/health`
+- PM2 状态（脚本部署）：`pm2 status`
+- Docker 状态（Compose 部署）：`docker compose ps`
+
+#### 插件连接服务端
+在插件设置中启用服务器模式，并填写服务地址（例如 `http://localhost:3000`）。
 
 ---
 
