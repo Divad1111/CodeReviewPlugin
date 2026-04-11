@@ -2,7 +2,7 @@
   "name": "svn-audit-assistant",
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "publisher": "codereview",
   "engines": {
     "vscode": "^1.85.0"
