@@ -163,7 +163,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // Rename Session
   context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.renameSession', (node) =>
+    vscode.commands.registerCommand('svnAudit.renameSession', (node: AuditTreeItem) =>
       renameSessionCommand(node, treeProvider, storagePath)
     )
   );
@@ -278,7 +278,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('svnAudit.addAuthorToSession.zh', (node: AuditTreeItem) =>
       addAuthorCommand(node, svnService, treeProvider, storagePath)
     ),
-    vscode.commands.registerCommand('svnAudit.renameSession.zh', (node) =>
+    vscode.commands.registerCommand('svnAudit.renameSession.zh', (node: AuditTreeItem) =>
       renameSessionCommand(node, treeProvider, storagePath)
     ),
     vscode.commands.registerCommand('svnAudit.deleteSession.zh', async (item: AuditTreeItem) => {
