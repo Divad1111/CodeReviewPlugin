@@ -90,6 +90,15 @@ export interface LocalizedStrings {
     actions: string;
     logoutConfirm: string;
     notLoggedIn: string;
+    reviewer: string;
+    reviewee: string;
+    selectRoles: string;
+    edit: string;
+    delete: string;
+    permissions: string;
+    optional: string;
+    saveLabel: string;
+    fetchingLogs: string;
 }
 
 const en: LocalizedStrings = {
@@ -169,7 +178,7 @@ const en: LocalizedStrings = {
     userManagement: "User Management",
     addUser: "Add User",
     deleteUser: "Delete User",
-    modifyUser: "Modify Password",
+    modifyUser: "Edit User",
     newUsername: "Enter username",
     newPassword: "Enter password",
     userAdded: "User added successfully.",
@@ -180,6 +189,15 @@ const en: LocalizedStrings = {
     actions: "Actions",
     logoutConfirm: "Are you sure you want to logout?",
     notLoggedIn: "Please login first",
+    reviewer: "Reviewer",
+    reviewee: "Reviewee",
+    selectRoles: "Select User Roles",
+    edit: "Edit",
+    delete: "Delete",
+    permissions: "Permissions",
+    optional: "Optional",
+    saveLabel: "Save Changes",
+    fetchingLogs: "SVN Audit: Syncing with SVN...",
 };
 
 const zh: LocalizedStrings = {
@@ -259,7 +277,7 @@ const zh: LocalizedStrings = {
     userManagement: "用户管理",
     addUser: "新增用户",
     deleteUser: "删除用户",
-    modifyUser: "修改密码",
+    modifyUser: "编辑用户",
     newUsername: "请输入用户名",
     newPassword: "请输入新密码",
     userAdded: "用户添加成功。",
@@ -270,12 +288,29 @@ const zh: LocalizedStrings = {
     actions: "操作",
     logoutConfirm: "确定要退出登录吗？",
     notLoggedIn: "请先登录",
+    reviewer: "评审者",
+    reviewee: "被评审者",
+    selectRoles: "选择用户权限",
+    edit: "编辑",
+    delete: "删除",
+    permissions: "权限",
+    optional: "可选",
+    saveLabel: "保存修改",
+    fetchingLogs: "SVN 审计：正在同步 SVN 数据...",
 };
 
 export function getLocalization(lang?: string): LocalizedStrings {
-    if (!lang) {
-        const vscodeLang = vscode.env.language.toLowerCase();
-        lang = (vscodeLang.startsWith('zh')) ? 'zh' : 'en';
+    let normalized = (lang || '').toLowerCase();
+    
+    // Default to VS Code's system language if not specified
+    if (!normalized) {
+        normalized = vscode.env.language.toLowerCase();
     }
-    return lang === 'zh' ? zh : en;
+    
+    // Check for 'zh' (matches zh-CN, zh-TW, etc.) or 'chinese'
+    if (normalized.startsWith('zh') || normalized.includes('chinese')) {
+        return zh;
+    }
+    
+    return en;
 }

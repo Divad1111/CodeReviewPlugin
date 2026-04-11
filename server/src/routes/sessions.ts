@@ -20,30 +20,51 @@ const router = Router();
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { username, role, parentReviewer } = req.user!;
+    const { username, roles, parentReviewer } = req.user!;
 
-    let sessions;
-    if (role === 'reviewer') {
-      sessions = await Session.find({ ownerUsername: username })
-        .sort({ createdAt: -1 });
-    } else {
-      // Reviewee: get sessions owned by their parent reviewer
-      // and filter to only those where the reviewee's username appears as an author
-      sessions = await Session.find({
-        ownerUsername: parentReviewer,
-        authors: username,
-      }).sort({ createdAt: -1 });
+    let sessions: any[] = [];
+    const query: any = { $or: [] };
+
+    // 1. If user is a reviewer, they can see sessions they created
+    if (roles.includes('reviewer')) {
+      query.$or.push({ ownerUsername: username });
     }
 
-    res.json(sessions.map(s => ({
-      id: s.sessionId,
-      name: s.name,
-      createdAt: s.createdAt,
-      repoUrl: s.repoUrl,
-      startDate: s.startDate,
-      endDate: s.endDate,
-      authors: s.authors,
-    })));
+    // 2. If user is a reviewee, they can see sessions where they are an author 
+    // (owned by their parent reviewer)
+    if (roles.includes('reviewee') && parentReviewer) {
+      query.$or.push({
+        ownerUsername: parentReviewer,
+        authors: username,
+      });
+    }
+
+    // Fallback for standalone/unexpected cases
+    if (query.$or.length === 0) {
+      sessions = [];
+    } else {
+      sessions = await Session.find(query).sort({ createdAt: -1 });
+    }
+
+    res.json(sessions.map(s => {
+      // Use ownership check instead of global role to determine visibility.
+      // Owners (reviewers) see all authors; participants (reviewees) see only themselves.
+      const currentUsernameLower = username.toLowerCase();
+      const isOwner = s.ownerUsername.toLowerCase() === currentUsernameLower;
+      const filteredAuthors = isOwner 
+        ? s.authors 
+        : s.authors.filter((a: string) => a.toLowerCase() === currentUsernameLower);
+      
+      return {
+        id: s.sessionId,
+        name: s.name,
+        createdAt: s.createdAt,
+        repoUrl: s.repoUrl,
+        startDate: s.startDate,
+        endDate: s.endDate,
+        authors: filteredAuthors,
+      };
+    }));
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -60,6 +81,13 @@ router.get('/:id', async (req: Request, res: Response) => {
       return;
     }
 
+    const { username } = req.user!;
+    const currentUsernameLower = username.toLowerCase();
+    const isOwner = session.ownerUsername.toLowerCase() === currentUsernameLower;
+    const filteredAuthors = isOwner 
+      ? session.authors 
+      : session.authors.filter((a: string) => a.toLowerCase() === currentUsernameLower);
+
     res.json({
       id: session.sessionId,
       name: session.name,
@@ -67,7 +95,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       repoUrl: session.repoUrl,
       startDate: session.startDate,
       endDate: session.endDate,
-      authors: session.authors,
+      authors: filteredAuthors,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

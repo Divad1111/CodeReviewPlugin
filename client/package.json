@@ -136,6 +136,16 @@
         "icon": "$(settings-gear)"
       },
       {
+        "command": "svnAudit.syncSession",
+        "title": "Sync with SVN",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "svnAudit.syncSession.zh",
+        "title": "同步 SVN 数据",
+        "icon": "$(sync)"
+      },
+      {
         "command": "svnAudit.jumpToSource",
         "title": "%svnAudit.jumpToSource.title%",
         "icon": "$(go-to-file)"
@@ -516,6 +526,16 @@
         },
         {
           "command": "svnAudit.addAuthorToSession.zh",
+          "when": "view == svnAuditSidebar && viewItem == session && svnAudit.isZh && svnAudit.isReviewer",
+          "group": "inline@0"
+        },
+        {
+          "command": "svnAudit.syncSession",
+          "when": "view == svnAuditSidebar && viewItem == session && !svnAudit.isZh && svnAudit.isReviewer",
+          "group": "inline@0"
+        },
+        {
+          "command": "svnAudit.syncSession.zh",
           "when": "view == svnAuditSidebar && viewItem == session && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@0"
         },

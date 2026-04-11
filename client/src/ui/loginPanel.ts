@@ -15,7 +15,7 @@ export interface LoginResult {
 export function createLoginPanel(
   extensionUri: vscode.Uri,
   onResult: (result: LoginResult) => void,
-  savedCredentials?: { serverUrl: string; username: string; password: string },
+  savedCredentials?: { serverUrl: string; username: string; password?: string },
   language?: string
 ): vscode.WebviewPanel {
   const L = getLocalization(language);
@@ -41,7 +41,6 @@ export function createLoginPanel(
           username: message.username,
           password: message.password,
         });
-        panel.dispose();
         break;
       case 'register':
         onResult({
@@ -61,7 +60,7 @@ export function createLoginPanel(
   return panel;
 }
 
-function getLoginHtml(L: any, saved?: { serverUrl: string; username: string; password: string }): string {
+function getLoginHtml(L: any, saved?: { serverUrl: string; username: string; password?: string }): string {
   return /*html*/ `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -199,7 +198,7 @@ function getLoginHtml(L: any, saved?: { serverUrl: string; username: string; pas
     
     <div class="form-group">
       <label>${L.serverAddress}</label>
-      <input type="text" id="serverUrl" placeholder="http://localhost:3000" value="${saved?.serverUrl || ''}">
+      <input type="text" id="serverUrl" placeholder="http://localhost:3000" value="${saved?.serverUrl || 'http://localhost:3000'}">
     </div>
     
     <div class="form-group">
@@ -282,6 +281,17 @@ function getLoginHtml(L: any, saved?: { serverUrl: string; username: string; pas
       }
     });
     
+    // Listen for error messages from extension
+    window.addEventListener('message', event => {
+      const message = event.data;
+      if (message.command === 'error') {
+        const errorMsg = document.getElementById('errorMsg');
+        errorMsg.textContent = message.message;
+        errorMsg.classList.add('visible');
+        document.getElementById('successMsg').classList.remove('visible');
+      }
+    });
+
     // Focus first empty field
     if (!document.getElementById('serverUrl').value) {
       document.getElementById('serverUrl').focus();

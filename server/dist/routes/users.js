@@ -22,31 +22,29 @@ router.get('/', async (req, res) => {
     try {
         const users = await User_1.User.find({
             parentReviewer: req.user.username,
-            role: 'reviewee',
-        }).select('username role createdAt');
-        res.json(users.map(u => ({
-            id: u._id,
-            username: u.username,
-            role: u.role,
-            createdAt: u.createdAt,
-        })));
+        }).sort({ createdAt: -1 });
+        const result = users.map(user => {
+            const u = user.toObject();
+            return {
+                id: u._id.toString(),
+                username: u.username,
+                roles: (u.roles && u.roles.length > 0) ? u.roles : ['reviewee'],
+                createdAt: u.createdAt,
+            };
+        });
+        res.json(result);
     }
     catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
-/**
- * POST /api/users
- * Create a new reviewee user.
- */
 router.post('/', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, roles } = req.body;
         if (!username || !password) {
-            res.status(400).json({ error: 'Username and password are required' });
+            res.status(400).json({ error: 'Username and password are REQUIRED FOR NEW USERS' });
             return;
         }
-        // Check if username exists
         const existing = await User_1.User.findOne({ username });
         if (existing) {
             res.status(409).json({ error: 'Username already exists' });
@@ -57,14 +55,14 @@ router.post('/', async (req, res) => {
         const user = new User_1.User({
             username,
             passwordHash,
-            role: 'reviewee',
+            roles: (roles && roles.length > 0) ? roles : ['reviewee'],
             parentReviewer: req.user.username,
         });
         await user.save();
         res.status(201).json({
-            id: user._id,
+            id: user._id.toString(),
             username: user.username,
-            role: user.role,
+            roles: user.roles,
             createdAt: user.createdAt,
         });
     }
@@ -72,30 +70,27 @@ router.post('/', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-/**
- * PUT /api/users/:id
- * Update a reviewee user's password.
- */
 router.put('/:id', async (req, res) => {
     try {
-        const { password } = req.body;
-        if (!password) {
-            res.status(400).json({ error: 'Password is required' });
-            return;
-        }
+        const { password, roles } = req.body;
         const user = await User_1.User.findOne({
             _id: req.params.id,
             parentReviewer: req.user.username,
-            role: 'reviewee',
         });
         if (!user) {
-            res.status(404).json({ error: 'User not found' });
+            res.status(404).json({ error: 'User not found in update' });
             return;
         }
-        const salt = await bcryptjs_1.default.genSalt(10);
-        user.passwordHash = await bcryptjs_1.default.hash(password, salt);
+        if (password) {
+            const salt = await bcryptjs_1.default.genSalt(10);
+            user.passwordHash = await bcryptjs_1.default.hash(password, salt);
+        }
+        if (roles && Array.isArray(roles)) {
+            user.roles = roles;
+            user.markModified('roles');
+        }
         await user.save();
-        res.json({ message: 'User updated' });
+        res.json({ message: 'Update successful' });
     }
     catch (err) {
         res.status(500).json({ error: err.message });
@@ -110,7 +105,6 @@ router.delete('/:id', async (req, res) => {
         const result = await User_1.User.deleteOne({
             _id: req.params.id,
             parentReviewer: req.user.username,
-            role: 'reviewee',
         });
         if (result.deletedCount === 0) {
             res.status(404).json({ error: 'User not found' });

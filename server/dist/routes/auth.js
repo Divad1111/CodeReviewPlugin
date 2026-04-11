@@ -35,9 +35,13 @@ router.post('/login', async (req, res) => {
             res.status(401).json({ error: 'Invalid credentials' });
             return;
         }
+        // Compatibility: Use user.roles if exists, fallback to user.role
+        const effectiveRoles = (user.roles && user.roles.length > 0)
+            ? user.roles
+            : [(user.role || 'reviewee')];
         const payload = {
             username: user.username,
-            role: user.role,
+            roles: effectiveRoles,
             parentReviewer: user.parentReviewer,
         };
         const token = jsonwebtoken_1.default.sign(payload, config_1.config.jwtSecret, {
@@ -46,7 +50,7 @@ router.post('/login', async (req, res) => {
         const response = {
             token,
             username: user.username,
-            role: user.role,
+            roles: effectiveRoles,
             parentReviewer: user.parentReviewer,
         };
         res.json(response);
@@ -81,7 +85,7 @@ router.post('/register', async (req, res) => {
         const user = new User_1.User({
             username,
             passwordHash,
-            role: 'reviewer',
+            roles: ['reviewer', 'reviewee'],
             parentReviewer: null,
         });
         await user.save();

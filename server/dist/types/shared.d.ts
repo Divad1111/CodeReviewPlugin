@@ -6,7 +6,7 @@ export interface IUser {
     _id?: string;
     username: string;
     passwordHash: string;
-    role: UserRole;
+    roles: UserRole[];
     parentReviewer: string | null;
     createdAt: Date;
 }
@@ -93,12 +93,12 @@ export interface RegisterRequest {
 export interface LoginResponse {
     token: string;
     username: string;
-    role: UserRole;
+    roles: UserRole[];
     parentReviewer: string | null;
 }
 export interface JwtPayload {
     username: string;
-    role: UserRole;
+    roles: UserRole[];
     parentReviewer: string | null;
 }
 //# sourceMappingURL=shared.d.ts.map

@@ -7,7 +7,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IUserDoc extends Document {
   username: string;
   passwordHash: string;
-  role: 'reviewer' | 'reviewee';
+  roles: ('reviewer' | 'reviewee')[];
   parentReviewer: string | null;
   createdAt: Date;
 }
@@ -15,7 +15,7 @@ export interface IUserDoc extends Document {
 const UserSchema = new Schema<IUserDoc>({
   username: { type: String, required: true, unique: true, trim: true },
   passwordHash: { type: String, required: true },
-  role: { type: String, enum: ['reviewer', 'reviewee'], required: true },
+  roles: { type: [String], enum: ['reviewer', 'reviewee'], default: ['reviewee'] },
   parentReviewer: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
 });

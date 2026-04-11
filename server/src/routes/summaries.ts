@@ -19,7 +19,20 @@ router.get('/', async (req: Request, res: Response) => {
     if (sessionId) { filter.sessionId = sessionId; }
     if (author) { filter.author = author; }
 
-    const summaries = await Summary.find(filter);
+    const { username } = req.user!;
+    const currentUsernameLower = username.toLowerCase();
+
+    const summaries = await Summary.find({
+      $and: [
+        filter,
+        {
+          $or: [
+            { ownerUsername: { $regex: new RegExp(`^${currentUsernameLower}$`, 'i') } },
+            { author: { $regex: new RegExp(`^${currentUsernameLower}$`, 'i') } }
+          ]
+        }
+      ]
+    });
 
     if (sessionId && author) {
       // Return single summary or null

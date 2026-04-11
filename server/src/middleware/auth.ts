@@ -42,7 +42,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
  * Require reviewer role.
  */
 export function requireReviewer(req: Request, res: Response, next: NextFunction): void {
-  if (!req.user || req.user.role !== 'reviewer') {
+  if (!req.user || !req.user.roles.includes('reviewer')) {
     res.status(403).json({ error: 'Reviewer permission required' });
     return;
   }

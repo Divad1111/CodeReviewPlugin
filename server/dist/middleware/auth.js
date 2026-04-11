@@ -33,7 +33,7 @@ function authMiddleware(req, res, next) {
  * Require reviewer role.
  */
 function requireReviewer(req, res, next) {
-    if (!req.user || req.user.role !== 'reviewer') {
+    if (!req.user || !req.user.roles.includes('reviewer')) {
         res.status(403).json({ error: 'Reviewer permission required' });
         return;
     }

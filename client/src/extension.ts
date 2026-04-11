@@ -26,6 +26,7 @@ import { editCommentCommand, deleteCommentCommand } from './commands/commentActi
 import { jumpToSourceCommand } from './commands/jumpToSource';
 import { editSummaryCommand } from './commands/editSummary';
 import { deleteFileCommand } from './commands/deleteFile';
+import { syncSessionCommand } from './commands/syncSession';
 import { AuditTreeItem } from './ui/auditTreeProvider';
 import { getLocalization } from './ui/localization';
 import { StorageContext } from './storage/storageContext';
@@ -127,14 +128,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // User Management
   context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.userManagement', () => {
+    vscode.commands.registerCommand('svnAudit.userManagement', async () => {
       const state = authManager.getAuthState();
       if (state.mode === 'server' && state.serverUrl && state.token) {
+        const settings = await getSettingsSafe();
         const panel = createUserManagementPanel(
           context.extensionUri,
           state.serverUrl,
           state.token,
-          undefined // will auto-detect language
+          settings?.language
         );
         registerAuthPanel(panel);
       }
@@ -162,16 +164,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // Export Report
   context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.exportReport', () =>
-      exportReportCommand(storagePath)
-    )
+    vscode.commands.registerCommand('svnAudit.exportReport', () => exportReportCommand(storagePath)),
+    vscode.commands.registerCommand('svnAudit.exportReport.zh', () => exportReportCommand(storagePath))
   );
 
   // Add Comment (editor context menu)
   context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.addComment', () =>
-      addCommentCommand(treeProvider, storagePath, diffManager)
-    )
+    vscode.commands.registerCommand('svnAudit.addComment', () => addCommentCommand(treeProvider, storagePath, diffManager)),
+    vscode.commands.registerCommand('svnAudit.addComment.zh', () => addCommentCommand(treeProvider, storagePath, diffManager))
   );
 
   // Mark as Reviewed
@@ -203,156 +203,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   // Delete Session
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.deleteSession', async (item: AuditTreeItem) => {
-      if (!item?.sessionId) { return; }
-      const confirm = await vscode.window.showWarningMessage(
-        `Delete this audit session? This will remove all review logs and comments.`,
-        { modal: true },
-        'Delete'
-      );
-      if (confirm === 'Delete') {
-        const provider = StorageContext.getProvider();
-        await provider.deleteSession(item.sessionId);
-        treeProvider.refresh();
-        vscode.window.showInformationMessage('Session deleted.');
-      }
-    })
-  );
-
-  // Edit/Delete Comment
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.editComment', (item: AuditTreeItem) =>
-      editCommentCommand(item, treeProvider, storagePath, diffManager)
-    )
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.deleteComment', (item: AuditTreeItem) =>
-      deleteCommentCommand(item, treeProvider, storagePath, diffManager)
-    )
-  );
-
-  // Rename Session
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.renameSession', (node: AuditTreeItem) =>
-      renameSessionCommand(node, treeProvider, storagePath)
-    )
-  );
-
-  // Add Author to Session
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.addAuthorToSession', (node: AuditTreeItem) =>
-      addAuthorCommand(node, svnService, treeProvider, storagePath)
-    )
-  );
-
-  // Author specific commands
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.deleteAuthor', (item: AuditTreeItem) =>
-      deleteAuthorCommand(item, treeProvider, storagePath)
-    )
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.exportAuthorReport', (item: AuditTreeItem) =>
-      exportAuthorReportCommand(item)
-    )
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.summarizeAuthor', (item: AuditTreeItem) =>
-      summarizeAuthorCommand(item, svnService)
-    )
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.editSummary', (item: AuditTreeItem) =>
-      editSummaryCommand(item, treeProvider, storagePath, context.extensionUri)
-    )
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.aiAudit', (item: AuditTreeItem) =>
-      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false)
-    )
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.aiAuditSelectModel', (item: AuditTreeItem) =>
-      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, true, false)
-    )
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.aiAuditForce', (item: AuditTreeItem) =>
-      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false, true)
-    )
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.aiAuditFull', (item: AuditTreeItem) =>
-      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false, false, true)
-    )
-  );
-
-  // Jump to Source
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.jumpToSource', () =>
-      jumpToSourceCommand(svnService)
-    )
-  );
-
-  // Settings
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.openSettings', () => {
-      const panel = settingsCommand(context.extensionUri, storagePath);
-      if (panel) { registerAuthPanel(panel); }
-    }),
-    vscode.commands.registerCommand('svnAudit.openSettings.zh', () =>
-      vscode.commands.executeCommand('svnAudit.openSettings')
-    )
-  );
-
-  // --- Shadow Command Registrations for ZH support ---
-  context.subscriptions.push(
-    vscode.commands.registerCommand('svnAudit.newSession.zh', () =>
-      vscode.commands.executeCommand('svnAudit.newSession')
-    ),
-    vscode.commands.registerCommand('svnAudit.refresh.zh', () => {
-      contentProvider.clearCache();
+  async function deleteSession(item: AuditTreeItem) {
+    if (!item?.sessionId) { return; }
+    const confirm = await vscode.window.showWarningMessage(
+      `Delete this audit session? This will remove all review logs and comments.`,
+      { modal: true },
+      'Delete'
+    );
+    if (confirm === 'Delete') {
+      const provider = StorageContext.getProvider();
+      await provider.deleteSession(item.sessionId);
       treeProvider.refresh();
-    }),
-    vscode.commands.registerCommand('svnAudit.exportReport.zh', () =>
-      exportReportCommand(storagePath)
-    ),
-    vscode.commands.registerCommand('svnAudit.aiAudit.zh', (item: AuditTreeItem) =>
-      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false)
-    ),
-    vscode.commands.registerCommand('svnAudit.aiAuditSelectModel.zh', (item: AuditTreeItem) =>
-      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, true, false)
-    ),
-    vscode.commands.registerCommand('svnAudit.aiAuditForce.zh', (item: AuditTreeItem) =>
-      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false, true)
-    ),
-    vscode.commands.registerCommand('svnAudit.aiAuditFull.zh', (item: AuditTreeItem) =>
-      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false, false, true)
-    ),
-    vscode.commands.registerCommand('svnAudit.markReviewed.zh', (item: AuditTreeItem) =>
-      markReviewedCommand(item, treeProvider, storagePath)
-    ),
-    vscode.commands.registerCommand('svnAudit.markFlagged.zh', (item: AuditTreeItem) =>
-      markFlaggedCommand(item, treeProvider, storagePath)
-    ),
-    vscode.commands.registerCommand('svnAudit.deleteFile.zh', (item: AuditTreeItem) =>
-      deleteFileCommand(item, treeProvider, storagePath)
-    ),
-    vscode.commands.registerCommand('svnAudit.addAuthorToSession.zh', (node: AuditTreeItem) =>
-      addAuthorCommand(node, svnService, treeProvider, storagePath)
-    ),
-    vscode.commands.registerCommand('svnAudit.renameSession.zh', (node: AuditTreeItem) =>
-      renameSessionCommand(node, treeProvider, storagePath)
-    ),
+      vscode.window.showInformationMessage('Session deleted.');
+    }
+  }
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.deleteSession', (item: AuditTreeItem) => deleteSession(item)),
     vscode.commands.registerCommand('svnAudit.deleteSession.zh', async (item: AuditTreeItem) => {
       if (!item?.sessionId) { return; }
       const settings = await getSettingsSafe();
@@ -368,40 +235,112 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         treeProvider.refresh();
         vscode.window.showInformationMessage(L.modelDeleted);
       }
-    }),
-    vscode.commands.registerCommand('svnAudit.addComment.zh', () =>
-      addCommentCommand(treeProvider, storagePath, diffManager)
-    ),
-    vscode.commands.registerCommand('svnAudit.exportAuthorReport.zh', (item: AuditTreeItem) =>
-      exportAuthorReportCommand(item)
-    ),
-    vscode.commands.registerCommand('svnAudit.summarizeAuthor.zh', (item: AuditTreeItem) =>
-      summarizeAuthorCommand(item, svnService)
-    ),
-    vscode.commands.registerCommand('svnAudit.editSummary.zh', (item: AuditTreeItem) =>
-      editSummaryCommand(item, treeProvider, storagePath, context.extensionUri)
+    })
+  );
+
+  // Edit/Delete Comment
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.editComment', (item: AuditTreeItem) => editCommentCommand(item, treeProvider, storagePath, diffManager)),
+    vscode.commands.registerCommand('svnAudit.editComment.zh', (item: AuditTreeItem) => editCommentCommand(item, treeProvider, storagePath, diffManager))
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.deleteComment', (item: AuditTreeItem) => deleteCommentCommand(item, treeProvider, storagePath, diffManager)),
+    vscode.commands.registerCommand('svnAudit.deleteComment.zh', (item: AuditTreeItem) => deleteCommentCommand(item, treeProvider, storagePath, diffManager))
+  );
+
+  // Rename Session
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.renameSession', (node: AuditTreeItem) => renameSessionCommand(node, treeProvider, storagePath)),
+    vscode.commands.registerCommand('svnAudit.renameSession.zh', (node: AuditTreeItem) => renameSessionCommand(node, treeProvider, storagePath))
+  );
+
+  // Sync Session
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.syncSession', (item: AuditTreeItem) => syncSessionCommand(item, svnService, treeProvider)),
+    vscode.commands.registerCommand('svnAudit.syncSession.zh', (item: AuditTreeItem) => syncSessionCommand(item, svnService, treeProvider))
+  );
+
+  // Add Author to Session
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.addAuthorToSession', (node: AuditTreeItem) => addAuthorCommand(node, svnService, treeProvider, storagePath)),
+    vscode.commands.registerCommand('svnAudit.addAuthorToSession.zh', (node: AuditTreeItem) => addAuthorCommand(node, svnService, treeProvider, storagePath))
+  );
+
+  // Author specific commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.deleteAuthor', (item: AuditTreeItem) =>
+      deleteAuthorCommand(item, treeProvider, storagePath)
     ),
     vscode.commands.registerCommand('svnAudit.deleteAuthor.zh', (item: AuditTreeItem) =>
       deleteAuthorCommand(item, treeProvider, storagePath)
-    ),
-    vscode.commands.registerCommand('svnAudit.editComment.zh', (item: AuditTreeItem) =>
-      editCommentCommand(item, treeProvider, storagePath, diffManager)
-    ),
-    vscode.commands.registerCommand('svnAudit.deleteComment.zh', (item: AuditTreeItem) =>
-      deleteCommentCommand(item, treeProvider, storagePath, diffManager)
-    ),
-    vscode.commands.registerCommand('svnAudit.jumpToSource.zh', () =>
-      jumpToSourceCommand(svnService)
     )
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.exportAuthorReport', (item: AuditTreeItem) => exportAuthorReportCommand(item)),
+    vscode.commands.registerCommand('svnAudit.exportAuthorReport.zh', (item: AuditTreeItem) => exportAuthorReportCommand(item))
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.summarizeAuthor', (item: AuditTreeItem) => summarizeAuthorCommand(item, svnService)),
+    vscode.commands.registerCommand('svnAudit.summarizeAuthor.zh', (item: AuditTreeItem) => summarizeAuthorCommand(item, svnService))
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.editSummary', (item: AuditTreeItem) => editSummaryCommand(item, treeProvider, storagePath, context.extensionUri)),
+    vscode.commands.registerCommand('svnAudit.editSummary.zh', (item: AuditTreeItem) => editSummaryCommand(item, treeProvider, storagePath, context.extensionUri))
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.aiAudit', (item: AuditTreeItem) => aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false)),
+    vscode.commands.registerCommand('svnAudit.aiAudit.zh', (item: AuditTreeItem) => aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false)),
+    vscode.commands.registerCommand('svnAudit.aiAuditSelectModel', (item: AuditTreeItem) => aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, true, false)),
+    vscode.commands.registerCommand('svnAudit.aiAuditSelectModel.zh', (item: AuditTreeItem) => aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, true, false)),
+    vscode.commands.registerCommand('svnAudit.aiAuditForce', (item: AuditTreeItem) => aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false, true)),
+    vscode.commands.registerCommand('svnAudit.aiAuditForce.zh', (item: AuditTreeItem) => aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false, true)),
+    vscode.commands.registerCommand('svnAudit.aiAuditFull', (item: AuditTreeItem) => aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false, false, true)),
+    vscode.commands.registerCommand('svnAudit.aiAuditFull.zh', (item: AuditTreeItem) => aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false, false, true))
+  );
+
+  // Jump to Source
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.jumpToSource', () => jumpToSourceCommand(svnService)),
+    vscode.commands.registerCommand('svnAudit.jumpToSource.zh', () => jumpToSourceCommand(svnService))
+  );
+
+  // Settings
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.openSettings', async () => {
+      const panel = await settingsCommand(context.extensionUri, storagePath);
+      if (panel) { registerAuthPanel(panel); }
+    }),
+    vscode.commands.registerCommand('svnAudit.openSettings.zh', () => vscode.commands.executeCommand('svnAudit.openSettings'))
+  );
+
+  // New Session / Refresh
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.newSession.zh', () => vscode.commands.executeCommand('svnAudit.newSession')),
+    vscode.commands.registerCommand('svnAudit.refresh.zh', () => {
+      contentProvider.clearCache();
+      treeProvider.refresh();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.markReviewed.zh', (item: AuditTreeItem) => markReviewedCommand(item, treeProvider, storagePath)),
+    vscode.commands.registerCommand('svnAudit.markFlagged.zh', (item: AuditTreeItem) => markFlaggedCommand(item, treeProvider, storagePath)),
+    vscode.commands.registerCommand('svnAudit.deleteFile.zh', (item: AuditTreeItem) => deleteFileCommand(item, treeProvider, storagePath))
+  );
+
   // --- Initial State ---
+
   // Set initial auth context (not logged in)
   updateAuthContext();
 
   // Try to auto-login with saved credentials, otherwise show login prompt
   const saved = await authManager.loadSavedCredentials();
-  if (saved) {
+  if (saved && saved.password) {
     try {
       await authManager.login(saved.serverUrl, saved.username, saved.password);
       const state = authManager.getAuthState();
@@ -430,7 +369,7 @@ async function showLoginPanel(
 ): Promise<void> {
   const saved = await authManager.loadSavedCredentials();
 
-  createLoginPanel(
+  const panel = createLoginPanel(
     context.extensionUri,
     async (result: LoginResult) => {
       try {
@@ -446,6 +385,7 @@ async function showLoginPanel(
           treeProvider.refresh();
 
           console.log('[SVN Audit] Entered standalone mode');
+          panel.dispose();
 
         } else if (result.mode === 'login') {
           // --- Server Login ---
@@ -456,9 +396,12 @@ async function showLoginPanel(
           await updateLanguageContext();
           treeProvider.refresh();
 
+          console.log(`[SVN Audit] Logged in as ${state.username} Roles: ${JSON.stringify(state.roles)}`);
+
           const settings = await getSettingsSafe();
           const L = getLocalization(settings?.language);
           vscode.window.showInformationMessage(L.loginSuccess);
+          panel.dispose();
 
         } else if (result.mode === 'register') {
           // --- Register ---
@@ -469,6 +412,7 @@ async function showLoginPanel(
           // Don't close panel — user can now login
         }
       } catch (err: any) {
+        panel.webview.postMessage({ command: 'error', message: err.message });
         vscode.window.showErrorMessage(`${err.message}`);
       }
     },

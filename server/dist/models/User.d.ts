@@ -5,7 +5,7 @@ import mongoose, { Document } from 'mongoose';
 export interface IUserDoc extends Document {
     username: string;
     passwordHash: string;
-    role: 'reviewer' | 'reviewee';
+    roles: ('reviewer' | 'reviewee')[];
     parentReviewer: string | null;
     createdAt: Date;
 }

@@ -38,9 +38,14 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
+    // Compatibility: Use user.roles if exists, fallback to user.role
+    const effectiveRoles = (user.roles && user.roles.length > 0)
+      ? user.roles
+      : [((user as any).role || 'reviewee') as any];
+
     const payload: JwtPayload = {
       username: user.username,
-      role: user.role,
+      roles: effectiveRoles,
       parentReviewer: user.parentReviewer,
     };
 
@@ -51,7 +56,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const response: LoginResponse = {
       token,
       username: user.username,
-      role: user.role,
+      roles: effectiveRoles,
       parentReviewer: user.parentReviewer,
     };
 
@@ -92,7 +97,7 @@ router.post('/register', async (req: Request, res: Response) => {
     const user = new User({
       username,
       passwordHash,
-      role: 'reviewer',
+      roles: ['reviewer', 'reviewee'],
       parentReviewer: null,
     });
 

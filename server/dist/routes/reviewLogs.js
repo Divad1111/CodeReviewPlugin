@@ -20,7 +20,7 @@ const router = (0, express_1.Router)();
 router.get('/', async (req, res) => {
     try {
         const { sessionId, author } = req.query;
-        const { username, role } = req.user;
+        const { username, roles } = req.user;
         const filter = {};
         if (sessionId) {
             filter.sessionId = sessionId;
@@ -28,11 +28,20 @@ router.get('/', async (req, res) => {
         if (author) {
             filter.author = author;
         }
-        if (role === 'reviewee') {
-            // Reviewee can only see logs for their own author name
-            filter.author = username;
-        }
-        const logs = await ReviewLog_1.ReviewLog.find(filter).sort({ author: 1, filePath: 1 });
+        const currentUsernameLower = username.toLowerCase();
+        // Enforce data ownership or author participation.
+        // Reviewers see logs they own; Reviewees see logs where they are the author.
+        const logs = await ReviewLog_1.ReviewLog.find({
+            $and: [
+                filter,
+                {
+                    $or: [
+                        { ownerUsername: { $regex: new RegExp(`^${currentUsernameLower}$`, 'i') } },
+                        { author: { $regex: new RegExp(`^${currentUsernameLower}$`, 'i') } }
+                    ]
+                }
+            ]
+        }).sort({ author: 1, filePath: 1 });
         res.json(logs.map(r => ({
             id: r.reviewLogId,
             sessionId: r.sessionId,

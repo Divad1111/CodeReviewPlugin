@@ -14,14 +14,14 @@ export interface AuthState {
   serverUrl?: string;
   username?: string;
   token?: string;
-  role?: UserRole;
+  roles?: UserRole[];
   parentReviewer?: string | null;
 }
 
 interface LoginResponse {
   token: string;
   username: string;
-  role: UserRole;
+  roles: UserRole[];
   parentReviewer: string | null;
 }
 
@@ -42,18 +42,21 @@ export class AuthManager {
       { username, password }
     );
 
+    // Double-check roles for compatibility with legacy servers or older accounts
+    const roles: UserRole[] = response.roles && response.roles.length > 0
+      ? response.roles
+      : (response as any).role ? [((response as any).role) as UserRole] : ['reviewee'];
+
     this.state = {
       mode: 'server',
       serverUrl: serverUrl.replace(/\/+$/, ''),
       username: response.username,
       token: response.token,
-      role: response.role,
+      roles: roles,
       parentReviewer: response.parentReviewer,
     };
 
-    // Save credentials
-    await this.saveCredentials(serverUrl, username, password);
-
+    console.log(`[SVN Audit] Login successful. Roles: ${JSON.stringify(roles)}`);
     return this.state;
   }
 
@@ -73,7 +76,7 @@ export class AuthManager {
   enterStandaloneMode(): void {
     this.state = {
       mode: 'standalone',
-      role: 'reviewer', // Standalone always has full access
+      roles: ['reviewer', 'reviewee'], // Standalone always has full access
     };
   }
 
@@ -100,11 +103,11 @@ export class AuthManager {
   }
 
   isReviewer(): boolean {
-    return this.state.role === 'reviewer';
+    return this.state.roles?.includes('reviewer') ?? false;
   }
 
   isReviewee(): boolean {
-    return this.state.role === 'reviewee';
+    return this.state.roles?.includes('reviewee') ?? false;
   }
 
   isAuthenticated(): boolean {
@@ -118,13 +121,14 @@ export class AuthManager {
     await this.context.secrets.store('svnAudit.password', password);
   }
 
-  async loadSavedCredentials(): Promise<{ serverUrl: string; username: string; password: string } | null> {
-    const serverUrl = this.context.globalState.get<string>('svnAudit.serverUrl');
-    const username = this.context.globalState.get<string>('svnAudit.username');
+  async loadSavedCredentials(): Promise<{ serverUrl: string; username: string; password?: string } | null> {
+    const serverUrl = this.context.globalState.get<string>('svnAudit.serverUrl') || '';
+    const username = this.context.globalState.get<string>('svnAudit.username') || '';
     const password = await this.context.secrets.get('svnAudit.password');
 
-    if (serverUrl && username && password) {
-      return { serverUrl, username, password };
+    // Return what we have, even if password is missing
+    if (serverUrl || username) {
+      return { serverUrl, username, password: password || undefined };
     }
     return null;
   }
