@@ -121,6 +121,11 @@
         "icon": "$(sparkle)"
       },
       {
+        "command": "svnAudit.aiAuditFull",
+        "title": "%svnAudit.aiAuditFull.title%",
+        "icon": "$(sparkle)"
+      },
+      {
         "command": "svnAudit.openSettings",
         "title": "%svnAudit.openSettings.title%",
         "icon": "$(settings-gear)"
@@ -187,6 +192,11 @@
       {
         "command": "svnAudit.aiAuditForce.zh",
         "title": "AI 代码审查 (强制分析)",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "svnAudit.aiAuditFull.zh",
+        "title": "AI 代码审查 (完整分析)",
         "icon": "$(sparkle)"
       },
       {
@@ -338,6 +348,16 @@
           "command": "svnAudit.aiAuditForce.zh",
           "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && svnAudit.isZh",
           "group": "6_ai@2"
+        },
+        {
+          "command": "svnAudit.aiAuditFull",
+          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && !svnAudit.isZh",
+          "group": "6_ai@3"
+        },
+        {
+          "command": "svnAudit.aiAuditFull.zh",
+          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && svnAudit.isZh",
+          "group": "6_ai@3"
         },
         {
           "command": "svnAudit.addAuthorToSession",

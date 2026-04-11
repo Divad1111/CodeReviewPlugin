@@ -10,6 +10,7 @@
     "svnAudit.aiAudit.title": "SVN 審計: AI 代碼審查",
     "svnAudit.aiAuditSelectModel.title": "SVN 審計: AI 代碼審查 (選擇模型)",
     "svnAudit.aiAuditForce.title": "SVN 審計: AI 代碼審查 (強制分析)",
+    "svnAudit.aiAuditFull.title": "SVN審計: AI代碼審查 (完整分析)",
     "svnAudit.openSettings.title": "SVN 審計: 設置",
     "svnAudit.openDiff.title": "SVN 審計: 打開差異對比",
     "svnAudit.deleteSession.title": "SVN 審計: 刪除會話",

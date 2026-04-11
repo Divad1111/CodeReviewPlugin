@@ -202,6 +202,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     )
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.aiAuditFull', (item: AuditTreeItem) =>
+      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false, false, true)
+    )
+  );
+
   // Settings
   context.subscriptions.push(
     vscode.commands.registerCommand('svnAudit.openSettings', () =>
@@ -233,6 +239,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     vscode.commands.registerCommand('svnAudit.aiAuditForce.zh', (item: AuditTreeItem) =>
       aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false, true)
+    ),
+    vscode.commands.registerCommand('svnAudit.aiAuditFull.zh', (item: AuditTreeItem) =>
+      aiAuditCommand(item, svnService, treeProvider, diffManager, storagePath, false, false, true)
     ),
     vscode.commands.registerCommand('svnAudit.markReviewed.zh', (item: AuditTreeItem) =>
       markReviewedCommand(item, treeProvider, storagePath)

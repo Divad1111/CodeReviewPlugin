@@ -8,16 +8,16 @@ export interface AIAnalysisResult {
   }[];
 }
 
-export class AIService {
   /**
-   * Analyze a code diff against coding standards.
+   * Analyze a code diff or full source against coding standards.
    */
   async analyzeDiff(
     filePath: string,
-    diff: string,
+    content: string,
     standards: string,
     logger?: (msg: string) => void,
-    configOverride?: { endpoint: string; modelName: string; apiKey?: string }
+    configOverride?: { endpoint: string; modelName: string; apiKey?: string },
+    isFullSource: boolean = false
   ): Promise<AIAnalysisResult> {
     const settings = getSettings();
     const config = configOverride || getAIModelByName(settings.aiModel);
@@ -31,7 +31,7 @@ export class AIService {
       throw new Error(`API Key for model '${modelDisplayName}' is not configured.`);
     }
 
-    const prompt = this.buildPrompt(filePath, diff, standards || 'Check for bugs and common naming issues.');
+    const prompt = this.buildPrompt(filePath, content, standards || 'Check for bugs and common naming issues.', isFullSource);
 
     let endpoint = config.endpoint.trim();
     const modelName = config.modelName;
@@ -41,12 +41,16 @@ export class AIService {
       endpoint = endpoint.replace(/\/$/, '') + '/chat/completions';
     }
 
+    const systemPrompt = isFullSource 
+      ? 'You are a senior code reviewer. Analyze the provided FULL FILE content and return a valid JSON object with a "comments" array. Each comment MUST have "line" (number), "text" (string), and optional "codeSnippet". Focus on coding standards, bugs, and overall architecture. Return ONLY JSON.'
+      : 'You are a senior code reviewer. Analyze the provided diff and return a valid JSON object with a "comments" array. Each comment MUST have "line" (number, relative to the diff or file), "text" (string), and optional "codeSnippet". Focus on coding standards and bugs. Return ONLY JSON.';
+
     const requestBody = {
       model: modelName,
       messages: [
         {
           role: 'system',
-          content: 'You are a senior code reviewer. Analyze the provided diff and return a valid JSON object with a "comments" array. Each comment MUST have "line" (number, relative to the diff or file), "text" (string), and optional "codeSnippet". Focus on coding standards and bugs. Return ONLY JSON.'
+          content: systemPrompt
         },
         { role: 'user', content: prompt }
       ],
@@ -84,15 +88,15 @@ export class AIService {
     }
   }
 
-  private buildPrompt(filePath: string, diff: string, standards: string): string {
+  private buildPrompt(filePath: string, content: string, standards: string, isFullSource: boolean): string {
     return `
       File Path: ${filePath}
       
       Coding Standards:
       ${standards}
       
-      Diff to analyze:
-      ${diff}
+      ${isFullSource ? 'Full Source Code to analyze:' : 'Diff to analyze:'}
+      ${content}
     `;
   }
 }

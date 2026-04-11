@@ -20,7 +20,8 @@ export async function aiAuditCommand(
   diffManager: DiffViewManager,
   storagePath: string,
   selectModel: boolean = false,
-  forceAudit: boolean = false
+  forceAudit: boolean = false,
+  fullAnalysis: boolean = false
 ): Promise<void> {
   const { sessionId, author, reviewLog, itemType } = item;
   if (!sessionId) { return; }
@@ -31,8 +32,8 @@ export async function aiAuditCommand(
   const settings = getSettings();
   const L = getLocalization(settings.language);
 
-  // Req 1: If audited already and this is a single file, prevent re-analysis UNLESS forceAudit is true
-  if (itemType === 'file' && reviewLog?.aiAudited && !selectModel && !forceAudit) {
+  // Req 1: If audited already and this is a single file, prevent re-analysis UNLESS forceAudit/fullAnalysis is true
+  if (itemType === 'file' && reviewLog?.aiAudited && !selectModel && !forceAudit && !fullAnalysis) {
     vscode.window.showInformationMessage(L.alreadyAuditedMsg);
     return;
   }
@@ -70,6 +71,9 @@ export async function aiAuditCommand(
   aiAuditChannel.clear();
   aiAuditChannel.show();
   aiAuditChannel.appendLine(`[${new Date().toLocaleTimeString()}] ${L.aiAuditStart}`);
+  if (fullAnalysis) {
+    aiAuditChannel.appendLine(`Mode: FULL ANALYSIS (using entire file content)`);
+  }
   aiAuditChannel.appendLine(`Session: ${session.name}`);
   aiAuditChannel.appendLine(`Model: ${config.name} (${config.modelName})`);
 
@@ -83,13 +87,13 @@ export async function aiAuditCommand(
     const allLogs = getReviewLogsByAuthor(sessionId, author);
     
     // Filter out already audited files (Requirement 1)
-    // If selectModel or forceAudit is true, we force re-analysis
-    reviewLogs = (selectModel || forceAudit) ? allLogs : allLogs.filter(rl => !rl.aiAudited);
+    // If selectModel or forceAudit or fullAnalysis is true, we force re-analysis
+    reviewLogs = (selectModel || forceAudit || fullAnalysis) ? allLogs : allLogs.filter(rl => !rl.aiAudited);
     
     const skippedCount = allLogs.length - reviewLogs.length;
-    if (skippedCount > 0 && !selectModel && !forceAudit) {
+    if (skippedCount > 0 && !selectModel && !forceAudit && !fullAnalysis) {
       aiAuditChannel.appendLine(L.skippingAudited);
-    } else if ((selectModel || forceAudit) && allLogs.length > 0) {
+    } else if ((selectModel || forceAudit || fullAnalysis) && allLogs.length > 0) {
       aiAuditChannel.appendLine(L.forcingReAudit);
     }
   }
@@ -132,21 +136,28 @@ export async function aiAuditCommand(
             continue;
           }
 
-          // Fetch diff (base is r-1 to get the changes in r)
-          const diff = await svnService.getDiffForFile(session.repoUrl, rl.filePath, rl.baseRevision - 1, rl.endRevision);
+          let contentToAnalyze: string;
+          if (fullAnalysis) {
+            aiAuditChannel.appendLine('Fetching full file content...');
+            contentToAnalyze = await svnService.getCat(session.repoUrl, rl.filePath, rl.endRevision);
+          } else {
+            // Fetch diff (base is r-1 to get the changes in r)
+            contentToAnalyze = await svnService.getDiffForFile(session.repoUrl, rl.filePath, rl.baseRevision - 1, rl.endRevision);
+          }
 
-          if (!diff.trim()) {
-            aiAuditChannel.appendLine('Skipping: Diff is empty.');
+          if (!contentToAnalyze.trim()) {
+            aiAuditChannel.appendLine('Skipping: Content is empty.');
             continue;
           }
 
           // Analyze with AI (Req 4: logger passed here)
           const results = await aiService.analyzeDiff(
             rl.filePath, 
-            diff, 
+            contentToAnalyze, 
             settings.codingStandards || '', 
             logger,
-            config || undefined
+            config || undefined,
+            fullAnalysis
           );
 
           aiAuditChannel.appendLine(`AI suggested ${results.comments.length} comments.`);
