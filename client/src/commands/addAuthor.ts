@@ -6,9 +6,7 @@
 
 import * as vscode from 'vscode';
 import { SvnService } from '../svn/svnService';
-import { getSessionById, updateSessionAuthors } from '../storage/sessionRepo';
-import { recordHistory } from '../storage/historyRepo';
-import { upsertReviewLog } from '../storage/reviewRepo';
+import { StorageContext } from '../storage/storageContext';
 import { aggregateByAuthor } from '../svn/mergeAlgorithm';
 import { AuditTreeDataProvider, AuditTreeItem } from '../ui/auditTreeProvider';
 
@@ -21,7 +19,8 @@ export async function addAuthorCommand(
   const sessionId = item.sessionId;
   if (!sessionId) {return;}
 
-  const session = getSessionById(sessionId);
+  const provider = StorageContext.getProvider();
+  const session = await provider.getSessionById(sessionId);
   if (!session) {
     vscode.window.showErrorMessage('Session not found.');
     return;
@@ -44,7 +43,7 @@ export async function addAuthorCommand(
   const newAuthor = authorName.trim();
 
   // Save to history
-  recordHistory('author', newAuthor, storagePath);
+  await provider.recordHistory('author', newAuthor);
 
   // Fetch and update
   await vscode.window.withProgress(
@@ -65,17 +64,14 @@ export async function addAuthorCommand(
 
         if (authorMap.size === 0) {
           vscode.window.showInformationMessage(`No changes found for author ${newAuthor} in this session range.`);
-          // Still add them to the authors list so they show up as an empty folder? 
-          // Actually, AuditTreeDataProvider gets person nodes FROM ReviewLogs, so we should always add them if they HAVE logs.
         } else {
           // Create review logs for each author's files
           for (const [, changes] of authorMap) {
             for (const file of changes.files) {
-              upsertReviewLog(
+              await provider.upsertReviewLog(
                 session.id,
                 file.path,
                 changes.author,
-                storagePath,
                 changes.baseRevision,
                 changes.endRevision
               );
@@ -85,7 +81,7 @@ export async function addAuthorCommand(
 
         // Update the session author list
         const updatedAuthors = [...session.authors, newAuthor];
-        updateSessionAuthors(session.id, updatedAuthors, storagePath);
+        await provider.updateSessionAuthors(session.id, updatedAuthors);
 
         progress.report({ message: 'Done!', increment: 50 });
 

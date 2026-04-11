@@ -1,10 +1,8 @@
 import * as vscode from 'vscode';
 import { AIService } from '../ai/aiService';
 import { SvnService } from '../svn/svnService';
-import { getSettings, getAIModelByName, getAIModels, AIModelConfig } from '../storage/settingsRepo';
-import { getSessionById } from '../storage/sessionRepo';
-import { getReviewLogsByAuthor, updateAiAuditStatus } from '../storage/reviewRepo';
-import { addComment, deleteAiComments } from '../storage/commentRepo';
+import { StorageContext } from '../storage/storageContext';
+import { AIModelConfig } from '../storage/settingsRepo';
 import { AuditTreeDataProvider, AuditTreeItem } from '../ui/auditTreeProvider';
 import { DiffViewManager } from '../ui/diffViewManager';
 import { ReviewLog } from '../svn/types';
@@ -26,10 +24,11 @@ export async function aiAuditCommand(
   const { sessionId, author, reviewLog, itemType } = item;
   if (!sessionId) { return; }
 
-  const session = getSessionById(sessionId);
+  const provider = StorageContext.getProvider();
+  const session = await provider.getSessionById(sessionId);
   if (!session) { return; }
 
-  const settings = getSettings();
+  const settings = await provider.getSettings();
   const L = getLocalization(settings.language);
 
   // Req 1: If audited already and this is a single file, prevent re-analysis UNLESS forceAudit/fullAnalysis is true
@@ -41,7 +40,7 @@ export async function aiAuditCommand(
   // Requirement 3: Model selection
   let config: AIModelConfig | null = null;
   if (selectModel) {
-    const models = getAIModels();
+    const models = await provider.getAIModels();
     const items = models.map(m => ({
       label: m.name,
       description: `${m.endpoint} (${m.modelName})`,
@@ -55,7 +54,7 @@ export async function aiAuditCommand(
     if (!selected) { return; }
     config = selected.model;
   } else {
-    config = getAIModelByName(settings.aiModel);
+    config = await provider.getAIModelByName(settings.aiModel);
   }
 
   if (!config) {
@@ -84,10 +83,8 @@ export async function aiAuditCommand(
     aiAuditChannel.appendLine(`Target: Single file (${reviewLog.filePath})`);
   } else if (itemType === 'person' && author) {
     aiAuditChannel.appendLine(`Target: All files for author (${author})`);
-    const allLogs = getReviewLogsByAuthor(sessionId, author);
+    const allLogs = await provider.getReviewLogsByAuthor(sessionId, author);
     
-    // Filter out already audited files (Requirement 1)
-    // If selectModel or forceAudit or fullAnalysis is true, we force re-analysis
     reviewLogs = (selectModel || forceAudit || fullAnalysis) ? allLogs : allLogs.filter(rl => !rl.aiAudited);
     
     const skippedCount = allLogs.length - reviewLogs.length;
@@ -124,7 +121,7 @@ export async function aiAuditCommand(
         }
 
         // Before adding new comments, delete existing AI comments for this file to avoid duplication
-        deleteAiComments(rl.id, storagePath);
+        await provider.deleteAiComments(rl.id);
 
         aiAuditChannel.appendLine(`\n--------------------------------------------------`);
         aiAuditChannel.appendLine(`Analyzing file: ${rl.filePath}`);
@@ -141,7 +138,6 @@ export async function aiAuditCommand(
             aiAuditChannel.appendLine('Fetching full file content...');
             contentToAnalyze = await svnService.getCat(session.repoUrl, rl.filePath, rl.endRevision);
           } else {
-            // Fetch diff (base is r-1 to get the changes in r)
             contentToAnalyze = await svnService.getDiffForFile(session.repoUrl, rl.filePath, rl.baseRevision - 1, rl.endRevision);
           }
 
@@ -150,7 +146,7 @@ export async function aiAuditCommand(
             continue;
           }
 
-          // Analyze with AI (Req 4: logger passed here)
+          // Analyze with AI
           const results = await aiService.analyzeDiff(
             rl.filePath, 
             contentToAnalyze, 
@@ -164,19 +160,18 @@ export async function aiAuditCommand(
 
           for (const c of results.comments) {
             aiAuditChannel.appendLine(`  - [Line ${c.line}]: ${c.text}`);
-            addComment(
+            await provider.addComment(
               rl.id,
               c.line,
               `[🤖 AI] ${c.text}`,
-              storagePath,
               c.codeSnippet,
               String(rl.endRevision)
             );
             totalComments++;
           }
           
-          // Mark as audited (Requirement 1)
-          updateAiAuditStatus(rl.id, true, storagePath);
+          // Mark as audited
+          await provider.updateAiAuditStatus(rl.id, true);
           filesProcessed++;
         } catch (err: any) {
           aiAuditChannel.appendLine(`Error: ${err.message}`);

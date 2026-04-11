@@ -14,7 +14,7 @@ export async function exportAuthorReportCommand(item: AuditTreeItem): Promise<vo
   if (!sessionId || !author) {return;}
 
   // Generate report
-  const markdown = generateMarkdownReport(sessionId, author);
+  const markdown = await generateMarkdownReport(sessionId, author);
 
   // Ask where to save
   const fileName = `audit_report_${author}_${new Date().toISOString().split('T')[0]}.md`.replace(/[\\/:*?"<>|]/g, '_');

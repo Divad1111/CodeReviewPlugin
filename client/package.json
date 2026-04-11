@@ -253,90 +253,150 @@
         "command": "svnAudit.jumpToSource.zh",
         "title": "跳转到源文件",
         "icon": "$(go-to-file)"
+      },
+      {
+        "command": "svnAudit.login",
+        "title": "Login / Start",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "svnAudit.login.zh",
+        "title": "登录 / 启动",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "svnAudit.logout",
+        "title": "Logout",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "svnAudit.logout.zh",
+        "title": "退出登录",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "svnAudit.userManagement",
+        "title": "User Management",
+        "icon": "$(organization)"
+      },
+      {
+        "command": "svnAudit.userManagement.zh",
+        "title": "用户管理",
+        "icon": "$(organization)"
       }
     ],
     "menus": {
       "view/title": [
         {
+          "command": "svnAudit.login",
+          "when": "view == svnAuditSidebar && !svnAudit.isLoggedIn && !svnAudit.isZh",
+          "group": "navigation@0"
+        },
+        {
+          "command": "svnAudit.login.zh",
+          "when": "view == svnAuditSidebar && !svnAudit.isLoggedIn && svnAudit.isZh",
+          "group": "navigation@0"
+        },
+        {
           "command": "svnAudit.newSession",
-          "when": "view == svnAuditSidebar && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && svnAudit.isLoggedIn && svnAudit.isReviewer && !svnAudit.isZh",
           "group": "navigation@1"
         },
         {
           "command": "svnAudit.newSession.zh",
-          "when": "view == svnAuditSidebar && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && svnAudit.isLoggedIn && svnAudit.isReviewer && svnAudit.isZh",
           "group": "navigation@1"
         },
         {
           "command": "svnAudit.refresh",
-          "when": "view == svnAuditSidebar && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && svnAudit.isLoggedIn && !svnAudit.isZh",
           "group": "navigation@2"
         },
         {
           "command": "svnAudit.refresh.zh",
-          "when": "view == svnAuditSidebar && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && svnAudit.isLoggedIn && svnAudit.isZh",
           "group": "navigation@2"
         },
         {
           "command": "svnAudit.exportReport",
-          "when": "view == svnAuditSidebar && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && svnAudit.isLoggedIn && svnAudit.isReviewer && !svnAudit.isZh",
           "group": "navigation@3"
         },
         {
           "command": "svnAudit.exportReport.zh",
-          "when": "view == svnAuditSidebar && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && svnAudit.isLoggedIn && svnAudit.isReviewer && svnAudit.isZh",
           "group": "navigation@3"
         },
         {
-          "command": "svnAudit.openSettings",
-          "when": "view == svnAuditSidebar && !svnAudit.isZh",
+          "command": "svnAudit.userManagement",
+          "when": "view == svnAuditSidebar && svnAudit.isLoggedIn && svnAudit.isReviewer && svnAudit.isServerMode && !svnAudit.isZh",
           "group": "navigation@4"
         },
         {
-          "command": "svnAudit.openSettings.zh",
-          "when": "view == svnAuditSidebar && svnAudit.isZh",
+          "command": "svnAudit.userManagement.zh",
+          "when": "view == svnAuditSidebar && svnAudit.isLoggedIn && svnAudit.isReviewer && svnAudit.isServerMode && svnAudit.isZh",
           "group": "navigation@4"
+        },
+        {
+          "command": "svnAudit.openSettings",
+          "when": "view == svnAuditSidebar && svnAudit.isLoggedIn && !svnAudit.isZh",
+          "group": "navigation@5"
+        },
+        {
+          "command": "svnAudit.openSettings.zh",
+          "when": "view == svnAuditSidebar && svnAudit.isLoggedIn && svnAudit.isZh",
+          "group": "navigation@5"
+        },
+        {
+          "command": "svnAudit.logout",
+          "when": "view == svnAuditSidebar && svnAudit.isLoggedIn && !svnAudit.isZh",
+          "group": "navigation@6"
+        },
+        {
+          "command": "svnAudit.logout.zh",
+          "when": "view == svnAuditSidebar && svnAudit.isLoggedIn && svnAudit.isZh",
+          "group": "navigation@6"
         }
       ],
       "view/item/context": [
         {
           "command": "svnAudit.markReviewed",
-          "when": "view == svnAuditSidebar && viewItem == file && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == file && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@1"
         },
         {
           "command": "svnAudit.markReviewed.zh",
-          "when": "view == svnAuditSidebar && viewItem == file && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == file && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@1"
         },
         {
           "command": "svnAudit.markFlagged",
-          "when": "view == svnAuditSidebar && viewItem == file && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == file && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@2"
         },
         {
           "command": "svnAudit.markFlagged.zh",
-          "when": "view == svnAuditSidebar && viewItem == file && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == file && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@2"
         },
         {
           "command": "svnAudit.aiAudit",
-          "when": "view == svnAuditSidebar && viewItem == file && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == file && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@3"
         },
         {
           "command": "svnAudit.aiAudit.zh",
-          "when": "view == svnAuditSidebar && viewItem == file && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == file && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@3"
         },
         {
           "command": "svnAudit.deleteFile",
-          "when": "view == svnAuditSidebar && viewItem == file && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == file && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@0"
         },
         {
           "command": "svnAudit.deleteFile.zh",
-          "when": "view == svnAuditSidebar && viewItem == file && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == file && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@0"
         },
         {
@@ -351,12 +411,12 @@
         },
         {
           "command": "svnAudit.deleteAuthor",
-          "when": "view == svnAuditSidebar && viewItem == person && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == person && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@3"
         },
         {
           "command": "svnAudit.deleteAuthor.zh",
-          "when": "view == svnAuditSidebar && viewItem == person && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == person && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@3"
         },
         {
@@ -371,144 +431,144 @@
         },
         {
           "command": "svnAudit.aiAudit",
-          "when": "view == svnAuditSidebar && viewItem == person && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == person && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@4"
         },
         {
           "command": "svnAudit.aiAudit.zh",
-          "when": "view == svnAuditSidebar && viewItem == person && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == person && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@4"
         },
         {
           "command": "svnAudit.editSummary",
-          "when": "view == svnAuditSidebar && viewItem == person && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == person && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@0"
         },
         {
           "command": "svnAudit.editSummary.zh",
-          "when": "view == svnAuditSidebar && viewItem == person && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == person && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@0"
         },
         {
           "command": "svnAudit.editSummary",
-          "when": "view == svnAuditSidebar && viewItem == summaryNode && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == summaryNode && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@1"
         },
         {
           "command": "svnAudit.editSummary.zh",
-          "when": "view == svnAuditSidebar && viewItem == summaryNode && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == summaryNode && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@1"
         },
         {
           "command": "svnAudit.editComment",
-          "when": "view == svnAuditSidebar && viewItem == comment && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == comment && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@1"
         },
         {
           "command": "svnAudit.editComment.zh",
-          "when": "view == svnAuditSidebar && viewItem == comment && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == comment && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@1"
         },
         {
           "command": "svnAudit.deleteComment",
-          "when": "view == svnAuditSidebar && viewItem == comment && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == comment && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@2"
         },
         {
           "command": "svnAudit.deleteComment.zh",
-          "when": "view == svnAuditSidebar && viewItem == comment && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == comment && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@2"
         },
         {
           "command": "svnAudit.aiAuditSelectModel",
-          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "6_ai@1"
         },
         {
           "command": "svnAudit.aiAuditSelectModel.zh",
-          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && svnAudit.isZh && svnAudit.isReviewer",
           "group": "6_ai@1"
         },
         {
           "command": "svnAudit.aiAuditForce",
-          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "6_ai@2"
         },
         {
           "command": "svnAudit.aiAuditForce.zh",
-          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && svnAudit.isZh && svnAudit.isReviewer",
           "group": "6_ai@2"
         },
         {
           "command": "svnAudit.aiAuditFull",
-          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "6_ai@3"
         },
         {
           "command": "svnAudit.aiAuditFull.zh",
-          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && svnAudit.isZh && svnAudit.isReviewer",
           "group": "6_ai@3"
         },
         {
           "command": "svnAudit.addAuthorToSession",
-          "when": "view == svnAuditSidebar && viewItem == session && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == session && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@0"
         },
         {
           "command": "svnAudit.addAuthorToSession.zh",
-          "when": "view == svnAuditSidebar && viewItem == session && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == session && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@0"
         },
         {
           "command": "svnAudit.renameSession",
-          "when": "view == svnAuditSidebar && viewItem == session && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == session && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@1"
         },
         {
           "command": "svnAudit.renameSession.zh",
-          "when": "view == svnAuditSidebar && viewItem == session && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == session && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@1"
         },
         {
           "command": "svnAudit.deleteSession",
-          "when": "view == svnAuditSidebar && viewItem == session && !svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == session && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@2"
         },
         {
           "command": "svnAudit.deleteSession.zh",
-          "when": "view == svnAuditSidebar && viewItem == session && svnAudit.isZh",
+          "when": "view == svnAuditSidebar && viewItem == session && svnAudit.isZh && svnAudit.isReviewer",
           "group": "inline@2"
         }
       ],
       "editor/context": [
         {
           "command": "svnAudit.addComment",
-          "when": "resourceScheme == 'svn-audit' && !svnAudit.isZh",
+          "when": "resourceScheme == 'svn-audit' && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "svnAudit@1"
         },
         {
           "command": "svnAudit.addComment.zh",
-          "when": "resourceScheme == 'svn-audit' && svnAudit.isZh",
+          "when": "resourceScheme == 'svn-audit' && svnAudit.isZh && svnAudit.isReviewer",
           "group": "svnAudit@1"
         },
         {
           "command": "svnAudit.editComment",
-          "when": "resourceScheme == 'svn-audit' && !svnAudit.isZh",
+          "when": "resourceScheme == 'svn-audit' && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "svnAudit@2"
         },
         {
           "command": "svnAudit.editComment.zh",
-          "when": "resourceScheme == 'svn-audit' && svnAudit.isZh",
+          "when": "resourceScheme == 'svn-audit' && svnAudit.isZh && svnAudit.isReviewer",
           "group": "svnAudit@2"
         },
         {
           "command": "svnAudit.deleteComment",
-          "when": "resourceScheme == 'svn-audit' && !svnAudit.isZh",
+          "when": "resourceScheme == 'svn-audit' && !svnAudit.isZh && svnAudit.isReviewer",
           "group": "svnAudit@3"
         },
         {
           "command": "svnAudit.deleteComment.zh",
-          "when": "resourceScheme == 'svn-audit' && svnAudit.isZh",
+          "when": "resourceScheme == 'svn-audit' && svnAudit.isZh && svnAudit.isReviewer",
           "group": "svnAudit@3"
         },
         {

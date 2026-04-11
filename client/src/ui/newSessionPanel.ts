@@ -5,7 +5,7 @@
  */
 
 import * as vscode from 'vscode';
-import { getHistory } from '../storage/historyRepo';
+import { StorageContext } from '../storage/storageContext';
 
 /**
  * Create and show the New Session webview panel.
@@ -25,15 +25,23 @@ export function createNewSessionPanel(
     }
   );
 
-  // Fetch history for autocomplete
-  const repoHistory = getHistory('repo_url');
-  const authorHistory = getHistory('author');
-
-  // Default dates
+  // Default dates (shown before history loads)
   const today = new Date().toISOString().split('T')[0];
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-  panel.webview.html = getWebviewContent(repoHistory, authorHistory, weekAgo, today);
+  // Show panel immediately with empty history, then update when history loads
+  panel.webview.html = getWebviewContent([], [], weekAgo, today);
+
+  // Fetch history for autocomplete (async)
+  (async () => {
+    try {
+      const provider = StorageContext.getProvider();
+      const repoHistory = await provider.getHistory('repo_url');
+      const authorHistory = await provider.getHistory('author');
+      // Update webview with history data
+      panel.webview.html = getWebviewContent(repoHistory, authorHistory, weekAgo, today);
+    } catch { /* ignore if not available */ }
+  })();
 
   panel.webview.onDidReceiveMessage((message) => {
     if (message.command === 'submit') {

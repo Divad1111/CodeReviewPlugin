@@ -1,17 +1,14 @@
 /**
  * Sidebar TreeView data provider for the SVN Audit extension.
  * Hierarchy: Session → Person → File (with status icons)
+ * Supports both standalone and server modes with role-based filtering.
  */
 
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { AuditSession, ReviewLog } from '../svn/types';
-import { getSessions } from '../storage/sessionRepo';
-import { getReviewLogsBySession } from '../storage/reviewRepo';
-import { getCommentCount, getCommentsByReviewLog } from '../storage/commentRepo';
-import { getSettings } from '../storage/settingsRepo';
+import { StorageContext } from '../storage/storageContext';
 import { getLocalization } from './localization';
-import { getSummary } from '../storage/summaryRepo';
 
 export type AuditTreeItemType = 'session' | 'person' | 'file' | 'comment' | 'summary';
 
@@ -31,14 +28,14 @@ export class AuditTreeItem extends vscode.TreeItem {
     this.setupAppearance();
   }
 
-  private setupAppearance(): void {
-    const settings = getSettings();
-    const L = getLocalization(settings.language);
+  /** commentCount injected externally for async support */
+  public commentCount: number = 0;
 
+  private setupAppearance(): void {
     switch (this.itemType) {
       case 'session': {
         this.iconPath = new vscode.ThemeIcon('folder-library');
-        this.tooltip = this.customTooltip || `${L.settingsTitle}: ${this.label}`;
+        this.tooltip = this.customTooltip || `Session: ${this.label}`;
         break;
       }
       case 'person': {
@@ -48,10 +45,9 @@ export class AuditTreeItem extends vscode.TreeItem {
       }
       case 'file': {
         if (this.reviewLog) {
-          const commentCount = getCommentCount(this.reviewLog.id);
-          const statusIcon = this.getStatusIcon(this.reviewLog.status, commentCount, this.reviewLog.aiAudited);
+          const statusIcon = this.getStatusIcon(this.reviewLog.status, this.commentCount, this.reviewLog.aiAudited);
           this.iconPath = statusIcon;
-          this.tooltip = `${this.reviewLog.filePath}\nStatus: ${this.reviewLog.status}${commentCount > 0 ? `\nComments: ${commentCount}` : ''}${this.reviewLog.aiAudited ? `\n(${L.aiAuditStart})` : ''}`;
+          this.tooltip = `${this.reviewLog.filePath}\nStatus: ${this.reviewLog.status}${this.commentCount > 0 ? `\nComments: ${this.commentCount}` : ''}${this.reviewLog.aiAudited ? `\n(AI Audited)` : ''}`;
 
           // Click opens diff view
           this.command = {
@@ -129,6 +125,11 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
   }
 
   async getChildren(element?: AuditTreeItem): Promise<AuditTreeItem[]> {
+    // If no provider is set, show nothing (not logged in)
+    if (!StorageContext.hasProvider()) {
+      return [];
+    }
+
     let children: AuditTreeItem[] = [];
     if (!element) {
       children = await this.getSessionNodes();
@@ -179,12 +180,13 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
   }
 
   private async getSessionNodes(): Promise<AuditTreeItem[]> {
-    const sessions = getSessions();
+    const provider = StorageContext.getProvider();
+    const sessions = await provider.getSessions();
     this.sessionItemsMap.clear();
 
     return sessions.map((s) => {
       const cacheKey = `session:${s.id}`;
-      if (this.itemCache.has(cacheKey)) {return this.itemCache.get(cacheKey)!;}
+      if (this.itemCache.has(cacheKey)) { return this.itemCache.get(cacheKey)!; }
 
       const label = `${s.name} (${s.endDate})`;
       const authorList = s.authors.join(', ');
@@ -207,21 +209,19 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
 
   private async getPersonChildren(sessionId: string, author: string): Promise<AuditTreeItem[]> {
     const children: AuditTreeItem[] = [];
-    const settings = getSettings();
-    const L = getLocalization(settings.language);
+    const provider = StorageContext.getProvider();
 
     // 1. Add Summary if exists
-    const summary = getSummary(sessionId, author);
+    const summary = await provider.getSummary(sessionId, author);
     if (summary) {
       const cacheKey = `summary:${sessionId}:${author}`;
-      const label = L.reviewResult;
-      
+
       let item: AuditTreeItem;
       if (this.itemCache.has(cacheKey)) {
         item = this.itemCache.get(cacheKey)!;
       } else {
         item = new AuditTreeItem(
-          label,
+          'Review Result',
           'summary',
           vscode.TreeItemCollapsibleState.None,
           sessionId,
@@ -242,12 +242,13 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
   }
 
   private async getPersonNodes(sessionId: string): Promise<AuditTreeItem[]> {
-    const reviewLogs = getReviewLogsBySession(sessionId);
+    const provider = StorageContext.getProvider();
+    const reviewLogs = await provider.getReviewLogsBySession(sessionId);
     const authors = new Set(reviewLogs.map(r => r.author));
 
     return Array.from(authors).sort().map((author) => {
       const cacheKey = `person:${sessionId}:${author}`;
-      if (this.itemCache.has(cacheKey)) {return this.itemCache.get(cacheKey)!;}
+      if (this.itemCache.has(cacheKey)) { return this.itemCache.get(cacheKey)!; }
 
       const item = new AuditTreeItem(
         author,
@@ -262,17 +263,19 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
   }
 
   private async getFileNodes(sessionId: string, author: string): Promise<AuditTreeItem[]> {
-    const reviewLogs = getReviewLogsBySession(sessionId).filter(r => r.author === author);
-    const settings = getSettings();
+    const provider = StorageContext.getProvider();
+    const reviewLogs = await provider.getReviewLogsBySession(sessionId);
+    const authorLogs = reviewLogs.filter(r => r.author === author);
+
+    const settings = await provider.getSettings();
     const excludeInput = settings.excludePatterns || '';
     const excludePatterns = excludeInput.split(',').map((p: string) => p.trim()).filter((p: string) => p.length > 0);
 
-    const filteredLogs = reviewLogs.filter(log => {
-      if (excludePatterns.length === 0) {return true;}
+    const filteredLogs = authorLogs.filter(log => {
+      if (excludePatterns.length === 0) { return true; }
       const filename = path.basename(log.filePath);
-      
+
       return !excludePatterns.some((pattern: string) => {
-        // Convert glob-like *.ext to simple regex
         const regexStr = pattern
           .replace(/\./g, '\\.')
           .replace(/\*/g, '.*')
@@ -282,12 +285,17 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
       });
     });
 
-    return filteredLogs.map((rl) => {
+    // Fetch comment counts in parallel
+    const items: AuditTreeItem[] = [];
+    for (const rl of filteredLogs) {
       const cacheKey = `file:${rl.id}`;
-      if (this.itemCache.has(cacheKey)) {return this.itemCache.get(cacheKey)!;}
+      if (this.itemCache.has(cacheKey)) {
+        items.push(this.itemCache.get(cacheKey)!);
+        continue;
+      }
 
+      const commentCount = await provider.getCommentCount(rl.id);
       const filename = path.basename(rl.filePath);
-      const commentCount = getCommentCount(rl.id);
       const collapsibleState = commentCount > 0
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None;
@@ -300,16 +308,23 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
         author,
         rl
       );
+      item.commentCount = commentCount;
+      // Re-call setupAppearance after setting commentCount
+      (item as any).setupAppearance();
+
       this.itemCache.set(cacheKey, item);
-      return item;
-    });
+      items.push(item);
+    }
+
+    return items;
   }
 
   private async getCommentNodes(reviewLog: ReviewLog): Promise<AuditTreeItem[]> {
-    const comments = getCommentsByReviewLog(reviewLog.id);
+    const provider = StorageContext.getProvider();
+    const comments = await provider.getCommentsByReviewLog(reviewLog.id);
     return comments.map(c => {
       const cacheKey = `comment:${c.id}`;
-      if (this.itemCache.has(cacheKey)) {return this.itemCache.get(cacheKey)!;}
+      if (this.itemCache.has(cacheKey)) { return this.itemCache.get(cacheKey)!; }
 
       const item = new AuditTreeItem(
         c.commentText.length > 30 ? c.commentText.substring(0, 30) + '...' : c.commentText,

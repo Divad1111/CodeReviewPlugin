@@ -3,7 +3,7 @@
  */
 
 import * as vscode from 'vscode';
-import { updateComment, deleteComment, getCommentsByReviewLog } from '../storage/commentRepo';
+import { StorageContext } from '../storage/storageContext';
 import { AuditTreeDataProvider, AuditTreeItem } from '../ui/auditTreeProvider';
 import { DiffViewManager } from '../ui/diffViewManager';
 import { ReviewComment } from '../svn/types';
@@ -21,7 +21,7 @@ export async function editCommentCommand(
 
   // If called from editor context menu
   if (!comment) {
-    comment = findCommentAtCursor();
+    comment = await findCommentAtCursor();
   }
 
   if (!comment) {
@@ -39,7 +39,8 @@ export async function editCommentCommand(
   });
 
   if (newText !== undefined && newText !== comment.commentText) {
-    updateComment(comment.id, newText, storagePath);
+    const provider = StorageContext.getProvider();
+    await provider.updateComment(comment.id, newText);
     treeProvider.refresh();
 
     // Refresh decorations in the current editor
@@ -65,7 +66,7 @@ export async function deleteCommentCommand(
 
   // If called from editor context menu
   if (!comment) {
-    comment = findCommentAtCursor();
+    comment = await findCommentAtCursor();
   }
 
   if (!comment) {
@@ -80,7 +81,8 @@ export async function deleteCommentCommand(
   );
 
   if (confirm === 'Delete') {
-    deleteComment(comment.id, storagePath);
+    const provider = StorageContext.getProvider();
+    await provider.deleteComment(comment.id);
     treeProvider.refresh();
 
     // Refresh decorations in the current editor
@@ -96,7 +98,7 @@ export async function deleteCommentCommand(
 /**
  * Helper: Find a comment at the active editor's cursor position.
  */
-function findCommentAtCursor(): ReviewComment | undefined {
+async function findCommentAtCursor(): Promise<ReviewComment | undefined> {
   const editor = vscode.window.activeTextEditor;
   if (!editor || editor.document.uri.scheme !== 'svn-audit') {return undefined;}
 
@@ -106,8 +108,8 @@ function findCommentAtCursor(): ReviewComment | undefined {
   if (!reviewLogId) {return undefined;}
 
   const lineNumber = editor.selection.start.line + 1;
-  const comments = getCommentsByReviewLog(reviewLogId);
+  const provider = StorageContext.getProvider();
+  const comments = await provider.getCommentsByReviewLog(reviewLogId);
   
-  // Default to the first one on that line if multiple exist
   return comments.find(c => c.lineNumber === lineNumber);
 }

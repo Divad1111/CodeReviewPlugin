@@ -5,8 +5,7 @@
 import * as vscode from 'vscode';
 import { ReviewLog, ReviewComment } from '../svn/types';
 import { SvnContentProvider } from './svnContentProvider';
-import { getSessionById } from '../storage/sessionRepo';
-import { getCommentsByReviewLog } from '../storage/commentRepo';
+import { StorageContext } from '../storage/storageContext';
 import { applyCommentDecorations, clearDecorations } from './coverageDecorations';
 import { AuditTreeDataProvider, AuditTreeItem } from './auditTreeProvider';
 
@@ -41,10 +40,11 @@ export class DiffViewManager {
   private async selectTreeItemForLine(editor: vscode.TextEditor): Promise<void> {
     const uri = editor.document.uri.toString();
     const log = this.activeLogs.get(uri);
-    if (!log) {return;}
+    if (!log) { return; }
 
     const lineNumber = editor.selection.start.line + 1;
-    const comments = getCommentsByReviewLog(log.id);
+    const provider = StorageContext.getProvider();
+    const comments = await provider.getCommentsByReviewLog(log.id);
     const comment = comments.find(c => c.lineNumber === lineNumber);
 
     if (comment) {
@@ -55,14 +55,15 @@ export class DiffViewManager {
     }
   }
 
-  public refreshDecorations(editor: vscode.TextEditor): void {
+  public async refreshDecorations(editor: vscode.TextEditor): Promise<void> {
     const uri = editor.document.uri.toString();
     const log = this.activeLogs.get(uri);
     if (!log) {
       return;
     }
-    
-    const comments = getCommentsByReviewLog(log.id);
+
+    const provider = StorageContext.getProvider();
+    const comments = await provider.getCommentsByReviewLog(log.id);
     if (comments && comments.length > 0) {
       applyCommentDecorations(editor, comments);
     } else {
@@ -72,11 +73,10 @@ export class DiffViewManager {
 
   /**
    * Open a diff view for the given review log entry.
-   * Left side: base revision (before changes)
-   * Right side: end revision (after changes)
    */
   async openDiffView(reviewLog: ReviewLog, comment?: ReviewComment): Promise<void> {
-    const session = getSessionById(reviewLog.sessionId);
+    const provider = StorageContext.getProvider();
+    const session = await provider.getSessionById(reviewLog.sessionId);
     if (!session) {
       vscode.window.showErrorMessage('Session not found.');
       return;
@@ -90,7 +90,7 @@ export class DiffViewManager {
     const repoUrl = session.repoUrl;
     const leftUri = SvnContentProvider.buildUri(
       reviewLog.filePath,
-      reviewLog.baseRevision - 1, // Show the state BEFORE the author's first change
+      reviewLog.baseRevision - 1,
       repoUrl,
       reviewLog.id
     );
@@ -115,7 +115,7 @@ export class DiffViewManager {
     );
 
     for (const editor of editors) {
-      this.refreshDecorations(editor);
+      await this.refreshDecorations(editor);
       if (comment) {
         const line = Math.max(0, comment.lineNumber - 1);
         const range = new vscode.Range(line, 0, line, 0);

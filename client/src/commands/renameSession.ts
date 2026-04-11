@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { AuditTreeItem, AuditTreeDataProvider } from '../ui/auditTreeProvider';
-import { renameSession, getSessionById } from '../storage/sessionRepo';
+import { StorageContext } from '../storage/storageContext';
 
 export async function renameSessionCommand(
   node: AuditTreeItem,
@@ -11,7 +11,8 @@ export async function renameSessionCommand(
     return;
   }
 
-  const session = getSessionById(node.sessionId);
+  const provider = StorageContext.getProvider();
+  const session = await provider.getSessionById(node.sessionId);
   if (!session) {
     return;
   }
@@ -28,7 +29,7 @@ export async function renameSessionCommand(
   });
 
   if (newName !== undefined && newName.trim().length > 0 && newName.trim() !== session.name) {
-    renameSession(session.id, newName.trim(), storagePath);
+    await provider.renameSession(session.id, newName.trim());
     vscode.window.showInformationMessage(`Session renamed to "${newName.trim()}"`);
     treeProvider.refresh();
   }

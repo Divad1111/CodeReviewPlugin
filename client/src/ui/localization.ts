@@ -61,6 +61,35 @@ export interface LocalizedStrings {
     commentCount: string;
     revRange: string;
     reviewedAt: string;
+    // --- New: Auth & User Management ---
+    loginTitle: string;
+    login: string;
+    logout: string;
+    register: string;
+    serverAddress: string;
+    standaloneMode: string;
+    or: string;
+    serverRequired: string;
+    usernameRequired: string;
+    passwordRequired: string;
+    loginSuccess: string;
+    loginFailed: string;
+    registerSuccess: string;
+    registerFailed: string;
+    userManagement: string;
+    addUser: string;
+    deleteUser: string;
+    modifyUser: string;
+    newUsername: string;
+    newPassword: string;
+    userAdded: string;
+    userDeleted: string;
+    userUpdated: string;
+    deleteUserConfirm: string;
+    noUsers: string;
+    actions: string;
+    logoutConfirm: string;
+    notLoggedIn: string;
 }
 
 const en: LocalizedStrings = {
@@ -122,6 +151,35 @@ const en: LocalizedStrings = {
     commentCount: "Total Comments",
     revRange: "Revision Range",
     reviewedAt: "Reviewed At",
+    // Auth & User Management
+    loginTitle: "Code Review - Login",
+    login: "Login",
+    logout: "Logout",
+    register: "Register",
+    serverAddress: "Server Address",
+    standaloneMode: "Standalone Mode (Local)",
+    or: "or",
+    serverRequired: "Server address is required",
+    usernameRequired: "Username is required",
+    passwordRequired: "Password is required",
+    loginSuccess: "Login successful",
+    loginFailed: "Login failed",
+    registerSuccess: "Registration successful! You can now log in.",
+    registerFailed: "Registration failed",
+    userManagement: "User Management",
+    addUser: "Add User",
+    deleteUser: "Delete User",
+    modifyUser: "Modify Password",
+    newUsername: "Enter username",
+    newPassword: "Enter password",
+    userAdded: "User added successfully.",
+    userDeleted: "User deleted.",
+    userUpdated: "User password updated.",
+    deleteUserConfirm: "Are you sure you want to delete user",
+    noUsers: "No users yet. Click 'Add User' to create a reviewee account.",
+    actions: "Actions",
+    logoutConfirm: "Are you sure you want to logout?",
+    notLoggedIn: "Please login first",
 };
 
 const zh: LocalizedStrings = {
@@ -157,7 +215,7 @@ const zh: LocalizedStrings = {
     skippingAudited: "跳过已审计的文件。",
     forcingReAudit: "强制重新分析所有文件。",
     aiSuggestedComments: "AI 建议了条评论。",
-    alreadyAuditedMsg: "此文件已审计。若要重新分析，请使用“强制 AI 审计”。",
+    alreadyAuditedMsg: "此文件已审计。若要重新分析，请使用\"强制 AI 审计\"。",
     errorPrefix: "错误",
     successSaved: "设置保存成功。",
     modelAdded: "模型已添加。",
@@ -183,6 +241,35 @@ const zh: LocalizedStrings = {
     commentCount: "评论总数",
     revRange: "修订范围",
     reviewedAt: "审核时间",
+    // Auth & User Management
+    loginTitle: "代码审查 - 登录",
+    login: "登录",
+    logout: "退出登录",
+    register: "注册",
+    serverAddress: "服务器地址",
+    standaloneMode: "单机模式 (本地)",
+    or: "或",
+    serverRequired: "请输入服务器地址",
+    usernameRequired: "请输入用户名",
+    passwordRequired: "请输入密码",
+    loginSuccess: "登录成功",
+    loginFailed: "登录失败",
+    registerSuccess: "注册成功！现在可以登录了。",
+    registerFailed: "注册失败",
+    userManagement: "用户管理",
+    addUser: "新增用户",
+    deleteUser: "删除用户",
+    modifyUser: "修改密码",
+    newUsername: "请输入用户名",
+    newPassword: "请输入新密码",
+    userAdded: "用户添加成功。",
+    userDeleted: "用户已删除。",
+    userUpdated: "密码修改成功。",
+    deleteUserConfirm: "确定要删除用户",
+    noUsers: "暂无用户。点击「新增用户」创建被审查账户。",
+    actions: "操作",
+    logoutConfirm: "确定要退出登录吗？",
+    notLoggedIn: "请先登录",
 };
 
 export function getLocalization(lang?: string): LocalizedStrings {

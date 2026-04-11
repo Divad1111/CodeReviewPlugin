@@ -7,9 +7,7 @@
 import * as vscode from 'vscode';
 import { SvnService } from '../svn/svnService';
 import { aggregateByAuthor } from '../svn/mergeAlgorithm';
-import { createSession } from '../storage/sessionRepo';
-import { upsertReviewLog } from '../storage/reviewRepo';
-import { recordHistory } from '../storage/historyRepo';
+import { StorageContext } from '../storage/storageContext';
 import { AuditTreeDataProvider } from '../ui/auditTreeProvider';
 import { createNewSessionPanel } from '../ui/newSessionPanel';
 
@@ -25,8 +23,10 @@ export async function newSessionCommand(
   createNewSessionPanel(extensionUri, async (data) => {
     const { command, name, repoUrl, authors: authorsStr, startDate, endDate, type, value } = data as any;
 
+    const provider = StorageContext.getProvider();
+
     if (command === 'deleteHistory') {
-      import('../storage/historyRepo').then(repo => repo.deleteHistory(type, value, storagePath));
+      await provider.deleteHistory(type, value);
       return;
     }
 
@@ -38,8 +38,10 @@ export async function newSessionCommand(
     }
 
     // Save inputs to history
-    recordHistory('repo_url', repoUrl, storagePath);
-    authors.forEach((author: string) => recordHistory('author', author, storagePath));
+    await provider.recordHistory('repo_url', repoUrl);
+    for (const author of authors) {
+      await provider.recordHistory('author', author);
+    }
 
     // Fetch SVN log with progress
     await vscode.window.withProgress(
@@ -84,16 +86,15 @@ export async function newSessionCommand(
           progress.report({ message: 'Creating session...', increment: 30 });
 
           // Create session
-          const session = createSession(name, repoUrl, startDate, endDate, authors, storagePath);
+          const session = await provider.createSession(name, repoUrl, startDate, endDate, authors);
 
           // Create review logs for each author's files
           for (const [, changes] of authorMap) {
             for (const file of changes.files) {
-              upsertReviewLog(
+              await provider.upsertReviewLog(
                 session.id,
                 file.path,
                 changes.author,
-                storagePath,
                 changes.baseRevision,
                 changes.endRevision
               );

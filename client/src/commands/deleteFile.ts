@@ -5,8 +5,7 @@
 
 import * as vscode from 'vscode';
 import { AuditTreeItem, AuditTreeDataProvider } from '../ui/auditTreeProvider';
-import { deleteReviewLog } from '../storage/reviewRepo';
-import { getSettings } from '../storage/settingsRepo';
+import { StorageContext } from '../storage/storageContext';
 import { getLocalization } from '../ui/localization';
 
 export async function deleteFileCommand(
@@ -19,7 +18,8 @@ export async function deleteFileCommand(
     return;
   }
 
-  const settings = getSettings();
+  const provider = StorageContext.getProvider();
+  const settings = await provider.getSettings();
   const L = getLocalization(settings.language);
 
   const confirm = await vscode.window.showWarningMessage(
@@ -29,7 +29,7 @@ export async function deleteFileCommand(
   );
 
   if (confirm === 'OK') {
-    deleteReviewLog(item.reviewLog.id, storagePath);
+    await provider.deleteReviewLog(item.reviewLog.id);
     treeProvider.refresh();
     vscode.window.showInformationMessage('File removed from review session.');
   }

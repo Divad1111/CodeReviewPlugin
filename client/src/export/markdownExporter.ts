@@ -1,19 +1,16 @@
 import * as path from 'path';
 import { AuditSession, ReviewLog, ReviewComment } from '../svn/types';
-import { getSessionById } from '../storage/sessionRepo';
-import { getReviewLogsBySession, getReviewLogsByAuthor } from '../storage/reviewRepo';
-import { getCommentsByReviewLog } from '../storage/commentRepo';
-import { getSettings } from '../storage/settingsRepo';
+import { StorageContext } from '../storage/storageContext';
 import { getLocalization } from '../ui/localization';
-import { getSummary } from '../storage/summaryRepo';
 
 /**
  * Generate a Markdown report for a given session.
  */
-export function generateMarkdownReport(sessionId: string, targetAuthor?: string): string {
-  const settings = getSettings();
+export async function generateMarkdownReport(sessionId: string, targetAuthor?: string): Promise<string> {
+  const provider = StorageContext.getProvider();
+  const settings = await provider.getSettings();
   const L = getLocalization(settings.language);
-  const session = getSessionById(sessionId);
+  const session = await provider.getSessionById(sessionId);
 
   if (!session) {
     return `# Error\n\nSession not found.`;
@@ -21,13 +18,16 @@ export function generateMarkdownReport(sessionId: string, targetAuthor?: string)
 
   // 1. Fetch and filter logs (only those with comments)
   const allLogs = targetAuthor 
-    ? getReviewLogsByAuthor(sessionId, targetAuthor)
-    : getReviewLogsBySession(sessionId);
+    ? await provider.getReviewLogsByAuthor(sessionId, targetAuthor)
+    : await provider.getReviewLogsBySession(sessionId);
 
-  const logsWithComments = allLogs.map(log => ({
-    log,
-    comments: getCommentsByReviewLog(log.id)
-  })).filter(entry => entry.comments.length > 0);
+  const logsWithComments: { log: ReviewLog; comments: ReviewComment[] }[] = [];
+  for (const log of allLogs) {
+    const comments = await provider.getCommentsByReviewLog(log.id);
+    if (comments.length > 0) {
+      logsWithComments.push({ log, comments });
+    }
+  }
 
   const lines: string[] = [];
 
@@ -47,7 +47,7 @@ export function generateMarkdownReport(sessionId: string, targetAuthor?: string)
   lines.push('---');
   lines.push('');
 
-  // Summary statistics (Based on filtered logs)
+  // Summary statistics
   const totalFiles = logsWithComments.length;
   const approvedFiles = logsWithComments.filter(e => e.log.status === 'approved').length;
   const flaggedFiles = logsWithComments.filter(e => e.log.status === 'flagged').length;
@@ -80,7 +80,7 @@ export function generateMarkdownReport(sessionId: string, targetAuthor?: string)
     lines.push('');
 
     // Add Review Summary if exists
-    const summary = getSummary(sessionId, author);
+    const summary = await provider.getSummary(sessionId, author);
     if (summary && summary.summary) {
       lines.push(`### 📝 ${L.reviewSummary}`);
       lines.push('');

@@ -4,9 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { addComment, deleteComment, getCommentsByReviewLog } from '../storage/commentRepo';
-import { getReviewLogsBySession } from '../storage/reviewRepo';
-import { getSessions } from '../storage/sessionRepo';
+import { StorageContext } from '../storage/storageContext';
 import { AuditTreeDataProvider } from '../ui/auditTreeProvider';
 import { DiffViewManager } from '../ui/diffViewManager';
 
@@ -46,13 +44,14 @@ export async function addCommentCommand(
   const revision = params.get('rev') || undefined;
 
   // Find the matching review log
-  const reviewLog = findReviewLogForFile(filePath, reviewLogId);
+  const reviewLog = await findReviewLogForFile(filePath, reviewLogId);
   if (!reviewLog) {
     vscode.window.showWarningMessage('Could not find a matching review log for this file. Make sure you opened this from the SVN Audit sidebar.');
     return;
   }
 
-  const comments = getCommentsByReviewLog(reviewLog.id);
+  const provider = StorageContext.getProvider();
+  const comments = await provider.getCommentsByReviewLog(reviewLog.id);
   const existingComment = comments.find((c: any) => c.lineNumber === lineNumber);
 
   // Ask for comment text
@@ -71,15 +70,14 @@ export async function addCommentCommand(
 
   // If comment already exists on this line, delete it first (Replace logic)
   if (existingComment) {
-    deleteComment(existingComment.id, storagePath);
+    await provider.deleteComment(existingComment.id);
   }
 
   // Save comment
-  addComment(
+  await provider.addComment(
     reviewLog.id,
     lineNumber,
     commentText,
-    storagePath,
     codeSnippet,
     revision
   );
@@ -96,23 +94,20 @@ export async function addCommentCommand(
 /**
  * Find a review log that matches the given file path or ID.
  */
-function findReviewLogForFile(filePath: string, reviewLogId: string | null): { id: string } | null {
-  const sessions = getSessions();
+async function findReviewLogForFile(filePath: string, reviewLogId: string | null): Promise<{ id: string } | null> {
+  const provider = StorageContext.getProvider();
+  const sessions = await provider.getSessions();
   
-  // If we have an ID from the URI, use it directly (this is the most reliable way)
   if (reviewLogId) {
-    // We could potentially just return { id: reviewLogId } if we trust it, 
-    // but verifying it exists and belongs to a session is safer.
     for (const session of sessions) {
-      const reviewLogs = getReviewLogsBySession(session.id);
+      const reviewLogs = await provider.getReviewLogsBySession(session.id);
       const found = reviewLogs.find(rl => rl.id === reviewLogId);
       if (found) {return found;}
     }
   }
 
-  // Fallback to path matching (fuzzy context match)
   for (const session of sessions) {
-    const reviewLogs = getReviewLogsBySession(session.id);
+    const reviewLogs = await provider.getReviewLogsBySession(session.id);
     for (const rl of reviewLogs) {
       if (filePath === rl.filePath) {
         return rl;

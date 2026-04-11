@@ -2,10 +2,10 @@
  * SVN Audit Assistant — VS Code Extension Entry Point
  *
  * Registers all commands, views, providers, and initializes the database.
+ * Supports both standalone (SQLite) and server (MongoDB) modes.
  */
 
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { SvnService } from './svn/svnService';
 import { initDatabase, closeDatabase } from './storage/database';
 import { AuditTreeDataProvider } from './ui/auditTreeProvider';
@@ -15,7 +15,6 @@ import { newSessionCommand } from './commands/newSession';
 import { addCommentCommand } from './commands/addComment';
 import { markReviewedCommand, markFlaggedCommand } from './commands/markReviewed';
 import { exportReportCommand } from './commands/exportReport';
-import { deleteSession } from './storage/sessionRepo';
 import { renameSessionCommand } from './commands/renameSession';
 import { addAuthorCommand } from './commands/addAuthor';
 import { deleteAuthorCommand } from './commands/deleteAuthor';
@@ -27,36 +26,39 @@ import { editCommentCommand, deleteCommentCommand } from './commands/commentActi
 import { jumpToSourceCommand } from './commands/jumpToSource';
 import { editSummaryCommand } from './commands/editSummary';
 import { deleteFileCommand } from './commands/deleteFile';
-import { ReviewLog, ReviewComment } from './svn/types';
 import { AuditTreeItem } from './ui/auditTreeProvider';
-import { getSettings } from './storage/settingsRepo';
 import { getLocalization } from './ui/localization';
+import { StorageContext } from './storage/storageContext';
+import { LocalStorageProvider } from './storage/localStorageProvider';
+import { RemoteStorageProvider } from './storage/remoteStorageProvider';
+import { AuthManager } from './auth/authManager';
+import { createLoginPanel, LoginResult } from './ui/loginPanel';
+import { createUserManagementPanel } from './ui/userManagementPanel';
+import { ReviewLog, ReviewComment } from './svn/types';
 
 let storagePath: string;
+let authManager: AuthManager;
+let treeProvider: AuditTreeDataProvider;
+let svnService: SvnService;
+let diffManager: DiffViewManager;
+let contentProvider: SvnContentProvider;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   console.log('[SVN Audit] Activating extension...');
 
   // --- Initialize SVN Service ---
-  const svnService = new SvnService();
+  svnService = new SvnService();
   const svnAvailable = await svnService.checkAvailable();
   if (!svnAvailable) {
-    // Show the sidebar anyway, but functionality will be limited
     console.warn('[SVN Audit] SVN not found in PATH.');
   }
 
-  // --- Initialize Database ---
+  // --- Initialize Auth Manager ---
+  authManager = new AuthManager(context);
   storagePath = context.globalStorageUri.fsPath;
-  try {
-    await initDatabase(storagePath);
-    console.log('[SVN Audit] Database initialized at:', storagePath);
-  } catch (err: any) {
-    vscode.window.showErrorMessage(`SVN Audit: Failed to initialize database — ${err.message}`);
-    return;
-  }
 
   // --- Register TreeView ---
-  const treeProvider = new AuditTreeDataProvider();
+  treeProvider = new AuditTreeDataProvider();
   const treeView = vscode.window.createTreeView('svnAuditSidebar', {
     treeDataProvider: treeProvider,
     showCollapseAll: true,
@@ -64,15 +66,67 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(treeView);
 
   // --- Register Virtual Document Provider ---
-  const contentProvider = new SvnContentProvider(svnService);
+  contentProvider = new SvnContentProvider(svnService);
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider('svn-audit', contentProvider)
   );
 
   // --- Register Diff View Manager ---
-  const diffManager = new DiffViewManager(treeView, treeProvider);
+  diffManager = new DiffViewManager(treeView, treeProvider);
 
   // --- Register Commands ---
+
+  // Login
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.login', () =>
+      showLoginPanel(context, treeProvider)
+    ),
+    vscode.commands.registerCommand('svnAudit.login.zh', () =>
+      showLoginPanel(context, treeProvider)
+    )
+  );
+
+  // Logout
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.logout', async () => {
+      const settings = await getSettingsSafe();
+      const L = getLocalization(settings?.language);
+      const confirm = await vscode.window.showWarningMessage(
+        L.logoutConfirm,
+        { modal: true },
+        'OK'
+      );
+      if (confirm === 'OK') {
+        await authManager.logout();
+        StorageContext.clearProvider();
+        closeDatabase();
+        updateAuthContext();
+        treeProvider.refresh();
+        vscode.window.showInformationMessage(L.logout);
+      }
+    }),
+    vscode.commands.registerCommand('svnAudit.logout.zh', () =>
+      vscode.commands.executeCommand('svnAudit.logout')
+    )
+  );
+
+  // User Management
+  context.subscriptions.push(
+    vscode.commands.registerCommand('svnAudit.userManagement', () => {
+      const state = authManager.getAuthState();
+      if (state.mode === 'server' && state.serverUrl && state.token) {
+        createUserManagementPanel(
+          context.extensionUri,
+          state.serverUrl,
+          state.token,
+          undefined // will auto-detect language
+        );
+      }
+    }),
+    vscode.commands.registerCommand('svnAudit.userManagement.zh', () =>
+      vscode.commands.executeCommand('svnAudit.userManagement')
+    )
+  );
 
   // New Session
   context.subscriptions.push(
@@ -134,14 +188,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Delete Session
   context.subscriptions.push(
     vscode.commands.registerCommand('svnAudit.deleteSession', async (item: AuditTreeItem) => {
-      if (!item?.sessionId) {return;}
+      if (!item?.sessionId) { return; }
       const confirm = await vscode.window.showWarningMessage(
         `Delete this audit session? This will remove all review logs and comments.`,
         { modal: true },
         'Delete'
       );
       if (confirm === 'Delete') {
-        deleteSession(item.sessionId, storagePath);
+        const provider = StorageContext.getProvider();
+        await provider.deleteSession(item.sessionId);
         treeProvider.refresh();
         vscode.window.showInformationMessage('Session deleted.');
       }
@@ -242,7 +297,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   // --- Shadow Command Registrations for ZH support ---
-  // These allow us to have localized titles/tooltips that follow our internal setting
   context.subscriptions.push(
     vscode.commands.registerCommand('svnAudit.newSession.zh', () =>
       newSessionCommand(context.extensionUri, svnService, treeProvider, treeView, storagePath)
@@ -282,16 +336,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       renameSessionCommand(node, treeProvider, storagePath)
     ),
     vscode.commands.registerCommand('svnAudit.deleteSession.zh', async (item: AuditTreeItem) => {
-      if (!item?.sessionId) {return;}
-      const settings = getSettings();
-      const L = getLocalization(settings.language);
+      if (!item?.sessionId) { return; }
+      const settings = await getSettingsSafe();
+      const L = getLocalization(settings?.language);
       const confirm = await vscode.window.showWarningMessage(
         L.deleteConfirm,
         { modal: true },
         'OK'
       );
       if (confirm === 'OK') {
-        deleteSession(item.sessionId, storagePath);
+        const provider = StorageContext.getProvider();
+        await provider.deleteSession(item.sessionId);
         treeProvider.refresh();
         vscode.window.showInformationMessage(L.modelDeleted);
       }
@@ -322,16 +377,117 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     )
   );
 
-  // --- Initial Context & Refresh ---
-  updateLanguageContext();
-  treeProvider.refresh();
+  // --- Initial State ---
+  // Set initial auth context (not logged in)
+  updateAuthContext();
+
+  // Try to auto-login with saved credentials, otherwise show login prompt
+  const saved = await authManager.loadSavedCredentials();
+  if (saved) {
+    try {
+      await authManager.login(saved.serverUrl, saved.username, saved.password);
+      const state = authManager.getAuthState();
+      const remoteProvider = new RemoteStorageProvider(state.serverUrl!, state.token!);
+      StorageContext.setProvider(remoteProvider);
+      updateAuthContext();
+      await updateLanguageContext();
+      treeProvider.refresh();
+      console.log('[SVN Audit] Auto-login successful');
+    } catch {
+      // Auto-login failed, user needs to login manually
+      console.log('[SVN Audit] Auto-login failed, waiting for manual login');
+      updateAuthContext();
+    }
+  }
 
   console.log('[SVN Audit] Extension activated successfully.');
 }
 
-function updateLanguageContext(): void {
-  const settings = getSettings();
-  let lang = settings.language;
+/**
+ * Show login panel and handle the result.
+ */
+async function showLoginPanel(
+  context: vscode.ExtensionContext,
+  treeProvider: AuditTreeDataProvider
+): Promise<void> {
+  const saved = await authManager.loadSavedCredentials();
+
+  createLoginPanel(
+    context.extensionUri,
+    async (result: LoginResult) => {
+      try {
+        if (result.mode === 'standalone') {
+          // --- Standalone Mode ---
+          authManager.enterStandaloneMode();
+
+          await initDatabase(storagePath);
+          const localProvider = new LocalStorageProvider(storagePath);
+          StorageContext.setProvider(localProvider);
+          updateAuthContext();
+          await updateLanguageContext();
+          treeProvider.refresh();
+
+          console.log('[SVN Audit] Entered standalone mode');
+
+        } else if (result.mode === 'login') {
+          // --- Server Login ---
+          const state = await authManager.login(result.serverUrl!, result.username!, result.password!);
+          const remoteProvider = new RemoteStorageProvider(state.serverUrl!, state.token!);
+          StorageContext.setProvider(remoteProvider);
+          updateAuthContext();
+          await updateLanguageContext();
+          treeProvider.refresh();
+
+          const settings = await getSettingsSafe();
+          const L = getLocalization(settings?.language);
+          vscode.window.showInformationMessage(L.loginSuccess);
+
+        } else if (result.mode === 'register') {
+          // --- Register ---
+          await authManager.register(result.serverUrl!, result.username!, result.password!);
+          const settings = await getSettingsSafe();
+          const L = getLocalization(settings?.language);
+          vscode.window.showInformationMessage(L.registerSuccess);
+          // Don't close panel — user can now login
+        }
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`${err.message}`);
+      }
+    },
+    saved || undefined
+  );
+}
+
+/**
+ * Update VS Code context keys for conditional UI.
+ */
+function updateAuthContext(): void {
+  const state = authManager.getAuthState();
+  const isAuthenticated = authManager.isAuthenticated() && StorageContext.hasProvider();
+  const isReviewer = authManager.isReviewer();
+  const isServerMode = state.mode === 'server';
+
+  vscode.commands.executeCommand('setContext', 'svnAudit.isLoggedIn', isAuthenticated);
+  vscode.commands.executeCommand('setContext', 'svnAudit.isReviewer', isReviewer);
+  vscode.commands.executeCommand('setContext', 'svnAudit.isReviewee', authManager.isReviewee());
+  vscode.commands.executeCommand('setContext', 'svnAudit.isServerMode', isServerMode);
+}
+
+/**
+ * Get settings safely (may fail if not initialized).
+ */
+async function getSettingsSafe(): Promise<any> {
+  try {
+    if (StorageContext.hasProvider()) {
+      return await StorageContext.getProvider().getSettings();
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+async function updateLanguageContext(): Promise<void> {
+  const settings = await getSettingsSafe();
+  let lang = settings?.language;
   if (!lang) {
     lang = vscode.env.language.startsWith('zh') ? 'zh' : 'en';
   }

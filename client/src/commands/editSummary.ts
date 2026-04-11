@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { AuditTreeItem, AuditTreeDataProvider } from '../ui/auditTreeProvider';
-import { getSummary, upsertSummary } from '../storage/summaryRepo';
+import { StorageContext } from '../storage/storageContext';
 import { createSummaryPanel } from '../ui/summaryPanel';
 
 export async function editSummaryCommand(
@@ -19,17 +19,18 @@ export async function editSummaryCommand(
     return;
   }
 
-  const existing = getSummary(item.sessionId, item.author);
+  const provider = StorageContext.getProvider();
+  const existing = await provider.getSummary(item.sessionId, item.author);
   const initialText = existing ? existing.summary : '';
 
   createSummaryPanel(
     extensionUri,
     item.author,
     initialText,
-    (newSummary) => {
+    async (newSummary) => {
       if (!item.sessionId || !item.author) {return;}
       
-      upsertSummary(item.sessionId, item.author, newSummary, storagePath);
+      await provider.upsertSummary(item.sessionId, item.author, newSummary);
       
       // Clear cache for this node to force update in tree
       const cacheKey = `summary:${item.sessionId}:${item.author}`;

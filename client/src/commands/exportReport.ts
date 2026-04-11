@@ -6,11 +6,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { getSessions } from '../storage/sessionRepo';
+import { StorageContext } from '../storage/storageContext';
 import { generateMarkdownReport } from '../export/markdownExporter';
 
 export async function exportReportCommand(storagePath: string): Promise<void> {
-  const sessions = getSessions();
+  const provider = StorageContext.getProvider();
+  const sessions = await provider.getSessions();
 
   if (sessions.length === 0) {
     vscode.window.showWarningMessage('No audit sessions found. Create a new session first.');
@@ -33,7 +34,7 @@ export async function exportReportCommand(storagePath: string): Promise<void> {
   if (!selected) {return;}
 
   // Generate report
-  const markdown = generateMarkdownReport(selected.sessionId);
+  const markdown = await generateMarkdownReport(selected.sessionId);
 
   // Ask where to save
   const fileName = `svn_audit_report_${new Date().toISOString().split('T')[0]}.md`.replace(/[\\/:*?"<>|]/g, '_');

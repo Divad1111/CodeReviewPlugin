@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: code-review-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=code_review
+
+  server:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: code-review-server
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongodb
+    environment:
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/code_review
+      - JWT_SECRET=${JWT_SECRET:-change-this-to-a-random-secret}
+      - JWT_EXPIRES_IN=7d
+
+volumes:
+  mongo-data:

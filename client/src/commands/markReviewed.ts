@@ -3,9 +3,8 @@
  */
 
 import * as vscode from 'vscode';
-import { updateReviewStatus } from '../storage/reviewRepo';
+import { StorageContext } from '../storage/storageContext';
 import { AuditTreeDataProvider, AuditTreeItem } from '../ui/auditTreeProvider';
-import { ReviewLog } from '../svn/types';
 
 export async function markReviewedCommand(
   item: AuditTreeItem | undefined,
@@ -17,7 +16,8 @@ export async function markReviewedCommand(
     return;
   }
 
-  updateReviewStatus(item.reviewLog.id, 'approved', storagePath);
+  const provider = StorageContext.getProvider();
+  await provider.updateReviewStatus(item.reviewLog.id, 'approved');
   treeProvider.refresh();
   vscode.window.showInformationMessage(`✅ Marked "${item.label}" as approved.`);
 }
@@ -32,7 +32,8 @@ export async function markFlaggedCommand(
     return;
   }
 
-  updateReviewStatus(item.reviewLog.id, 'flagged', storagePath);
+  const provider = StorageContext.getProvider();
+  await provider.updateReviewStatus(item.reviewLog.id, 'flagged');
   treeProvider.refresh();
   vscode.window.showInformationMessage(`❌ Marked "${item.label}" as flagged.`);
 }

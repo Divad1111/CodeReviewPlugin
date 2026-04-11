@@ -4,6 +4,9 @@
     {
       "type": "npm",
       "script": "watch",
+      "options": {
+        "cwd": "${workspaceFolder}/client"
+      },
       "problemMatcher": {
         "owner": "custom",
         "pattern": {

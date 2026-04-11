@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { SvnService } from '../svn/svnService';
-import { getSessionById } from '../storage/sessionRepo';
+import { StorageContext } from '../storage/storageContext';
 import { AuditTreeItem } from '../ui/auditTreeProvider';
 
 export async function summarizeAuthorCommand(
@@ -16,7 +16,8 @@ export async function summarizeAuthorCommand(
   const { sessionId, author } = item;
   if (!sessionId || !author) {return;}
 
-  const session = getSessionById(sessionId);
+  const provider = StorageContext.getProvider();
+  const session = await provider.getSessionById(sessionId);
   if (!session) {return;}
 
   await vscode.window.withProgress(

@@ -4,8 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { getSessionById, updateSessionAuthors } from '../storage/sessionRepo';
-import { deleteReviewLogsByAuthor } from '../storage/reviewRepo';
+import { StorageContext } from '../storage/storageContext';
 import { AuditTreeDataProvider, AuditTreeItem } from '../ui/auditTreeProvider';
 
 export async function deleteAuthorCommand(
@@ -16,7 +15,8 @@ export async function deleteAuthorCommand(
   const { sessionId, author } = item;
   if (!sessionId || !author) {return;}
 
-  const session = getSessionById(sessionId);
+  const provider = StorageContext.getProvider();
+  const session = await provider.getSessionById(sessionId);
   if (!session) {return;}
 
   const confirm = await vscode.window.showWarningMessage(
@@ -27,13 +27,16 @@ export async function deleteAuthorCommand(
 
   if (confirm === 'Remove') {
     // 1. Delete review logs and comments
-    deleteReviewLogsByAuthor(sessionId, author, storagePath);
+    await provider.deleteReviewLogsByAuthor(sessionId, author);
 
-    // 2. Update session author list
+    // 2. Delete summary
+    await provider.deleteSummary(sessionId, author);
+
+    // 3. Update session author list
     const updatedAuthors = session.authors.filter(a => a !== author);
-    updateSessionAuthors(sessionId, updatedAuthors, storagePath);
+    await provider.updateSessionAuthors(sessionId, updatedAuthors);
 
-    // 3. Refresh tree
+    // 4. Refresh tree
     treeProvider.refresh();
 
     vscode.window.showInformationMessage(`Author "${author}" removed.`);
