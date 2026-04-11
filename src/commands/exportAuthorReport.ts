@@ -17,12 +17,12 @@ export async function exportAuthorReportCommand(item: AuditTreeItem): Promise<vo
   const markdown = generateMarkdownReport(sessionId, author);
 
   // Ask where to save
-  const defaultUri = vscode.workspace.workspaceFolders?.[0]?.uri;
+  const fileName = `audit_report_${author}_${new Date().toISOString().split('T')[0]}.md`.replace(/[\\/:*?"<>|]/g, '_');
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri;
+  
   const saveUri = await vscode.window.showSaveDialog({
     title: `Export Audit Report for ${author}`,
-    defaultUri: defaultUri
-      ? vscode.Uri.joinPath(defaultUri, `audit_report_${author}_${new Date().toISOString().split('T')[0]}.md`)
-      : undefined,
+    defaultUri: workspaceFolder ? vscode.Uri.joinPath(workspaceFolder, fileName) : vscode.Uri.file(fileName),
     filters: {
       'Markdown': ['md'],
       'All Files': ['*'],

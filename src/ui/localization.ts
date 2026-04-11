@@ -53,6 +53,14 @@ export interface LocalizedStrings {
     fileFiltering: string;
     fileFilteringDesc: string;
     deleteFile: string;
+    reportHeader: string;
+    sessionInfo: string;
+    summaryStats: string;
+    authorSection: string;
+    reviewSummary: string;
+    commentCount: string;
+    revRange: string;
+    reviewedAt: string;
 }
 
 const en: LocalizedStrings = {
@@ -106,6 +114,14 @@ const en: LocalizedStrings = {
     fileFiltering: "File Filtering",
     fileFilteringDesc: "Exclude files by name (e.g. *.meta, *.prefab)",
     deleteFile: "Remove file from review",
+    reportHeader: "SVN Audit Report",
+    sessionInfo: "Session Information",
+    summaryStats: "Summary Statistics",
+    authorSection: "Author Details",
+    reviewSummary: "Final Review Summary",
+    commentCount: "Total Comments",
+    revRange: "Revision Range",
+    reviewedAt: "Reviewed At",
 };
 
 const zh: LocalizedStrings = {
@@ -159,6 +175,14 @@ const zh: LocalizedStrings = {
     fileFiltering: "文件过滤",
     fileFilteringDesc: "通过文件名模糊匹配过滤（如：*.meta, *.prefab）",
     deleteFile: "从本次审核中移除文件",
+    reportHeader: "SVN 审计报告",
+    sessionInfo: "会话信息",
+    summaryStats: "统计概览",
+    authorSection: "作者详情",
+    reviewSummary: "最终评审总结",
+    commentCount: "评论总数",
+    revRange: "修订范围",
+    reviewedAt: "审核时间",
 };
 
 export function getLocalization(lang?: string): LocalizedStrings {

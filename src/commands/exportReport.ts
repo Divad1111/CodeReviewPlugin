@@ -36,12 +36,12 @@ export async function exportReportCommand(storagePath: string): Promise<void> {
   const markdown = generateMarkdownReport(selected.sessionId);
 
   // Ask where to save
-  const defaultUri = vscode.workspace.workspaceFolders?.[0]?.uri;
+  const fileName = `svn_audit_report_${new Date().toISOString().split('T')[0]}.md`.replace(/[\\/:*?"<>|]/g, '_');
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri;
+
   const saveUri = await vscode.window.showSaveDialog({
     title: 'Save Audit Report',
-    defaultUri: defaultUri
-      ? vscode.Uri.joinPath(defaultUri, `svn_audit_report_${new Date().toISOString().split('T')[0]}.md`)
-      : undefined,
+    defaultUri: workspaceFolder ? vscode.Uri.joinPath(workspaceFolder, fileName) : vscode.Uri.file(fileName),
     filters: {
       'Markdown': ['md'],
       'All Files': ['*'],
