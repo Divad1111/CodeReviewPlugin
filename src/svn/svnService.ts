@@ -49,11 +49,20 @@ async function execSvn(args: string[], cwd?: string, skipAuth = false): Promise<
     svnLogChannel.appendLine(`[${new Date().toLocaleTimeString()}] Completed successfully. (Output length: ${stdout.length} bytes)`);
     return stdout;
   } catch (err: any) {
+    const stderr = err.stderr || '';
     svnLogChannel.appendLine(`[${new Date().toLocaleTimeString()}] Failed: ${err.message}`);
-    if (err.stderr) {
-      svnLogChannel.appendLine(`[${new Date().toLocaleTimeString()}] Stderr: ${err.stderr}`);
+    if (stderr) {
+      svnLogChannel.appendLine(`[${new Date().toLocaleTimeString()}] Stderr: ${stderr}`);
     }
-    throw new Error(`svn command failed: ${err.stderr || err.message}`);
+
+    let userFriendlyMsg = stderr || err.message;
+    if (stderr.includes('E220001') || stderr.includes('Item is not readable')) {
+      userFriendlyMsg = `svn: E220001 (Item is not readable). This usually means you don't have read permission for some paths in this revision range. Try providing SVN credentials in Settings or using a more specific Repository URL that you have full access to.`;
+    } else if (stderr.includes('E170001') || stderr.includes('Authorization failed')) {
+      userFriendlyMsg = `svn: E170001 (Authorization failed). Please check your SVN username and password in Settings.`;
+    }
+
+    throw new Error(`svn command failed: ${userFriendlyMsg}`);
   }
 }
 
@@ -96,12 +105,56 @@ export class SvnService extends VcsProvider {
       '--xml',
       '-v', // verbose — include changed paths
       '-r', `{${startDate}}:{${endInclusiveStr}}`,
+      repoUrl
     ];
 
-    args.push(repoUrl);
+    try {
+      const xml = await execSvn(args);
+      return parseLogXml(xml);
+    } catch (err: any) {
+      // If verbose log fails due to permission issues (E220001), 
+      // some SVN servers are strict and block the entire log if one path in one revision is unreadable.
+      // We fallback to a slower but more resilient method: fetch the list of revisions first, 
+      // then try to get verbose info for each one individually, skipping those that remain unreadable.
+      if (err.message.includes('E220001') || err.message.includes('Item is not readable')) {
+        svnLogChannel.appendLine(`[${new Date().toLocaleTimeString()}] Batch verbose log failed (E220001). Attempting resilient fallback (one-by-one)...`);
+        
+        let basicEntries: SvnLogEntry[];
+        try {
+          // 1. Get basic logs without -v (this usually succeeds even with strict authz)
+          const basicArgs = ['log', '--xml', '-r', `{${startDate}}:{${endInclusiveStr}}`, repoUrl];
+          const basicXml = await execSvn(basicArgs);
+          basicEntries = await parseLogXml(basicXml);
+        } catch (fallbackErr: any) {
+          svnLogChannel.appendLine(`[${new Date().toLocaleTimeString()}] Resilient fallback failed at basic log: ${fallbackErr.message}`);
+          throw new Error(`SVN log failed even in non-verbose mode. This usually means the URL "${repoUrl}" itself is unreadable with your current permissions. Error: ${fallbackErr.message}`);
+        }
+        
+        if (basicEntries.length === 0) {return [];}
 
-    const xml = await execSvn(args);
-    return parseLogXml(xml);
+        // 2. For each revision, attempt to get verbose info
+        const resilientEntries: SvnLogEntry[] = [];
+        for (const entry of basicEntries) {
+          try {
+            const detailXml = await execSvn(['log', '--xml', '-v', '-r', String(entry.revision), repoUrl]);
+            const detailed = await parseLogXml(detailXml);
+            if (detailed.length > 0) {
+              resilientEntries.push(detailed[0]);
+            }
+          } catch (detailErr: any) {
+            // If this specific revision is unreadable, we have to skip its file details
+            svnLogChannel.appendLine(`[${new Date().toLocaleTimeString()}] Skipping revision ${entry.revision} due to permission error: ${detailErr.message}`);
+            // We can still keep the basic entry but without changedPaths
+            resilientEntries.push({
+              ...entry,
+              changedPaths: []
+            });
+          }
+        }
+        return resilientEntries;
+      }
+      throw err;
+    }
   }
 
   /**

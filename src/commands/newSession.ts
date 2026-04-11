@@ -50,7 +50,15 @@ export async function newSessionCommand(
       },
       async (progress) => {
         try {
-          progress.report({ message: 'Querying SVN log...', increment: 0 });
+          progress.report({ message: 'Validating repository...', increment: 0 });
+
+          // 1. Verify we can access the repository at all
+          const info = await svnService.getInfo(repoUrl);
+          if (!info) {
+            throw new Error(`Cannot access the repository at "${repoUrl}". Please verify the URL and your credentials in Settings.`);
+          }
+
+          progress.report({ message: 'Querying SVN log...', increment: 10 });
 
           const logEntries = await svnService.getLog(repoUrl, startDate, endDate);
 
