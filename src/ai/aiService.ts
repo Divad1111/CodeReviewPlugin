@@ -7,7 +7,7 @@ export interface AIAnalysisResult {
     codeSnippet?: string;
   }[];
 }
-
+export class AIService {
   /**
    * Analyze a code diff or full source against coding standards.
    */

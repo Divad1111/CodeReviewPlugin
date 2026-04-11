@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { addComment } from '../storage/commentRepo';
+import { addComment, deleteComment, getCommentsByReviewLog } from '../storage/commentRepo';
 import { getReviewLogsBySession } from '../storage/reviewRepo';
 import { getSessions } from '../storage/sessionRepo';
 import { AuditTreeDataProvider } from '../ui/auditTreeProvider';
@@ -53,7 +53,7 @@ export async function addCommentCommand(
   }
 
   const comments = getCommentsByReviewLog(reviewLog.id);
-  const existingComment = comments.find(c => c.lineNumber === lineNumber);
+  const existingComment = comments.find((c: any) => c.lineNumber === lineNumber);
 
   // Ask for comment text
   const commentText = await vscode.window.showInputBox({

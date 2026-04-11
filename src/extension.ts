@@ -67,7 +67,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   // --- Register Diff View Manager ---
-  const diffManager = new DiffViewManager();
+  const diffManager = new DiffViewManager(treeView, treeProvider);
 
   // --- Register Commands ---
 
