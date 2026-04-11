@@ -281,6 +281,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     vscode.commands.registerCommand('svnAudit.deleteAuthor.zh', (item: AuditTreeItem) =>
       deleteAuthorCommand(item, treeProvider, storagePath)
+    ),
+    vscode.commands.registerCommand('svnAudit.editComment.zh', (item: AuditTreeItem) =>
+      editCommentCommand(item, treeProvider, storagePath, diffManager)
+    ),
+    vscode.commands.registerCommand('svnAudit.deleteComment.zh', (item: AuditTreeItem) =>
+      deleteCommentCommand(item, treeProvider, storagePath, diffManager)
     )
   );
 

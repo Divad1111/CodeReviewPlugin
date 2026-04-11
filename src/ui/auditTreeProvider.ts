@@ -99,8 +99,12 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private sessionItemsMap: Map<string, AuditTreeItem> = new Map();
+  private parentMap = new WeakMap<AuditTreeItem, AuditTreeItem>();
+  private itemCache = new Map<string, AuditTreeItem>();
 
   refresh(): void {
+    this.itemCache.clear();
+    this.sessionItemsMap.clear();
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -112,24 +116,58 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
     return element;
   }
 
-  getChildren(element?: AuditTreeItem): Thenable<AuditTreeItem[]> {
+  getParent(element: AuditTreeItem): vscode.ProviderResult<AuditTreeItem> {
+    return this.parentMap.get(element);
+  }
+
+  async getChildren(element?: AuditTreeItem): Promise<AuditTreeItem[]> {
+    let children: AuditTreeItem[] = [];
     if (!element) {
-      return this.getSessionNodes();
+      children = await this.getSessionNodes();
+    } else {
+      switch (element.itemType) {
+        case 'session':
+          children = await this.getPersonNodes(element.sessionId!);
+          break;
+        case 'person':
+          children = await this.getFileNodes(element.sessionId!, element.author!);
+          break;
+        case 'file':
+          if (element.reviewLog) {
+            children = await this.getCommentNodes(element.reviewLog);
+          }
+          break;
+      }
     }
 
-    switch (element.itemType) {
-      case 'session':
-        return this.getPersonNodes(element.sessionId!);
-      case 'person':
-        return this.getFileNodes(element.sessionId!, element.author!);
-      case 'file':
-        if (element.reviewLog) {
-          return this.getCommentNodes(element.reviewLog);
+    // Map parents for reveal
+    children.forEach(child => {
+      if (element) {
+        this.parentMap.set(child, element);
+      }
+    });
+
+    return children;
+  }
+
+  /**
+   * Helper to find a specific comment item in the tree hierarchy.
+   */
+  async findCommentItem(reviewLogId: string, commentId: string): Promise<AuditTreeItem | undefined> {
+    const sessions = await this.getChildren();
+    for (const sessionItem of sessions) {
+      const persons = await this.getChildren(sessionItem);
+      for (const personItem of persons) {
+        const files = await this.getChildren(personItem);
+        for (const fileItem of files) {
+          if (fileItem.reviewLog?.id === reviewLogId) {
+            const comments = await this.getChildren(fileItem);
+            return comments.find(c => c.comment?.id === commentId);
+          }
         }
-        return Promise.resolve([]);
-      default:
-        return Promise.resolve([]);
+      }
     }
+    return undefined;
   }
 
   private async getSessionNodes(): Promise<AuditTreeItem[]> {
@@ -137,10 +175,13 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
     this.sessionItemsMap.clear();
 
     return sessions.map((s) => {
+      const cacheKey = `session:${s.id}`;
+      if (this.itemCache.has(cacheKey)) {return this.itemCache.get(cacheKey)!;}
+
       const label = `${s.name} (${s.endDate})`;
       const authorList = s.authors.join(', ');
       const tooltip = `${s.name}\n${s.startDate} ↔ ${s.endDate}\nAuthors: ${authorList}`;
-      
+
       const item = new AuditTreeItem(
         label,
         'session',
@@ -151,6 +192,7 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
         tooltip
       );
       this.sessionItemsMap.set(s.id, item);
+      this.itemCache.set(cacheKey, item);
       return item;
     });
   }
@@ -160,13 +202,18 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
     const authors = new Set(reviewLogs.map(r => r.author));
 
     return Array.from(authors).sort().map((author) => {
-      return new AuditTreeItem(
+      const cacheKey = `person:${sessionId}:${author}`;
+      if (this.itemCache.has(cacheKey)) {return this.itemCache.get(cacheKey)!;}
+
+      const item = new AuditTreeItem(
         author,
         'person',
         vscode.TreeItemCollapsibleState.Expanded,
         sessionId,
         author
       );
+      this.itemCache.set(cacheKey, item);
+      return item;
     });
   }
 
@@ -175,13 +222,16 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
       .filter(r => r.author === author);
 
     return reviewLogs.map((rl) => {
+      const cacheKey = `file:${rl.id}`;
+      if (this.itemCache.has(cacheKey)) {return this.itemCache.get(cacheKey)!;}
+
       const filename = path.basename(rl.filePath);
       const commentCount = getCommentCount(rl.id);
       const collapsibleState = commentCount > 0
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None;
 
-      return new AuditTreeItem(
+      const item = new AuditTreeItem(
         filename,
         'file',
         collapsibleState,
@@ -189,13 +239,18 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
         author,
         rl
       );
+      this.itemCache.set(cacheKey, item);
+      return item;
     });
   }
 
   private async getCommentNodes(reviewLog: ReviewLog): Promise<AuditTreeItem[]> {
     const comments = getCommentsByReviewLog(reviewLog.id);
     return comments.map(c => {
-      return new AuditTreeItem(
+      const cacheKey = `comment:${c.id}`;
+      if (this.itemCache.has(cacheKey)) {return this.itemCache.get(cacheKey)!;}
+
+      const item = new AuditTreeItem(
         c.commentText.length > 30 ? c.commentText.substring(0, 30) + '...' : c.commentText,
         'comment',
         vscode.TreeItemCollapsibleState.None,
@@ -205,6 +260,8 @@ export class AuditTreeDataProvider implements vscode.TreeDataProvider<AuditTreeI
         undefined,
         c
       );
+      this.itemCache.set(cacheKey, item);
+      return item;
     });
   }
 }

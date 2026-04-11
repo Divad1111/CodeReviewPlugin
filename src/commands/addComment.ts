@@ -52,10 +52,14 @@ export async function addCommentCommand(
     return;
   }
 
+  const comments = getCommentsByReviewLog(reviewLog.id);
+  const existingComment = comments.find(c => c.lineNumber === lineNumber);
+
   // Ask for comment text
   const commentText = await vscode.window.showInputBox({
-    title: 'SVN Audit: Add Comment',
-    prompt: `Add comment for line ${lineNumber}`,
+    title: existingComment ? 'SVN Audit: Edit Comment' : 'SVN Audit: Add Comment',
+    prompt: existingComment ? `Edit existing comment for line ${lineNumber}` : `Add comment for line ${lineNumber}`,
+    value: existingComment ? existingComment.commentText : '',
     placeHolder: 'Enter your review comment...',
     validateInput: (value) => {
       if (!value.trim()) {return 'Comment text is required';}
@@ -65,7 +69,10 @@ export async function addCommentCommand(
 
   if (!commentText) {return;}
 
-  if (!commentText) {return;}
+  // If comment already exists on this line, delete it first (Replace logic)
+  if (existingComment) {
+    deleteComment(existingComment.id, storagePath);
+  }
 
   // Save comment
   addComment(
@@ -83,7 +90,7 @@ export async function addCommentCommand(
   // Refresh decorations in the current editor
   diffManager.refreshDecorations(editor);
 
-  vscode.window.showInformationMessage(`Comment added at line ${lineNumber}.`);
+  vscode.window.showInformationMessage(existingComment ? `Comment updated at line ${lineNumber}.` : `Comment added at line ${lineNumber}.`);
 }
 
 /**

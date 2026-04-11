@@ -8,11 +8,15 @@ import { SvnContentProvider } from './svnContentProvider';
 import { getSessionById } from '../storage/sessionRepo';
 import { getCommentsByReviewLog } from '../storage/commentRepo';
 import { applyCommentDecorations, clearDecorations } from './coverageDecorations';
+import { AuditTreeDataProvider, AuditTreeItem } from './auditTreeProvider';
 
 export class DiffViewManager {
   private activeLogs = new Map<string, ReviewLog>();
 
-  constructor() {
+  constructor(
+    private treeView: vscode.TreeView<AuditTreeItem>,
+    private treeProvider: AuditTreeDataProvider
+  ) {
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor && editor.document.uri.scheme === 'svn-audit') {
         this.refreshDecorations(editor);
@@ -26,6 +30,29 @@ export class DiffViewManager {
         }
       });
     });
+
+    vscode.window.onDidChangeTextEditorSelection((event) => {
+      if (event.textEditor.document.uri.scheme === 'svn-audit') {
+        this.selectTreeItemForLine(event.textEditor);
+      }
+    });
+  }
+
+  private async selectTreeItemForLine(editor: vscode.TextEditor): Promise<void> {
+    const uri = editor.document.uri.toString();
+    const log = this.activeLogs.get(uri);
+    if (!log) {return;}
+
+    const lineNumber = editor.selection.start.line + 1;
+    const comments = getCommentsByReviewLog(log.id);
+    const comment = comments.find(c => c.lineNumber === lineNumber);
+
+    if (comment) {
+      const item = await this.treeProvider.findCommentItem(log.id, comment.id);
+      if (item) {
+        this.treeView.reveal(item, { select: true, focus: false, expand: true });
+      }
+    }
   }
 
   public refreshDecorations(editor: vscode.TextEditor): void {

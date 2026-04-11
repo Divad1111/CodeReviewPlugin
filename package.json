@@ -185,6 +185,16 @@
         "title": "添加代码评论"
       },
       {
+        "command": "svnAudit.editComment.zh",
+        "title": "编辑代码评论",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "svnAudit.deleteComment.zh",
+        "title": "删除代码评论",
+        "icon": "$(trash)"
+      },
+      {
         "command": "svnAudit.aiAuditSelectModel.zh",
         "title": "AI 代码审查 (选择模型)",
         "icon": "$(sparkle)"
@@ -330,6 +340,26 @@
           "group": "inline@4"
         },
         {
+          "command": "svnAudit.editComment",
+          "when": "view == svnAuditSidebar && viewItem == comment && !svnAudit.isZh",
+          "group": "inline@1"
+        },
+        {
+          "command": "svnAudit.editComment.zh",
+          "when": "view == svnAuditSidebar && viewItem == comment && svnAudit.isZh",
+          "group": "inline@1"
+        },
+        {
+          "command": "svnAudit.deleteComment",
+          "when": "view == svnAuditSidebar && viewItem == comment && !svnAudit.isZh",
+          "group": "inline@2"
+        },
+        {
+          "command": "svnAudit.deleteComment.zh",
+          "when": "view == svnAuditSidebar && viewItem == comment && svnAudit.isZh",
+          "group": "inline@2"
+        },
+        {
           "command": "svnAudit.aiAuditSelectModel",
           "when": "view == svnAuditSidebar && (viewItem == person || viewItem == file) && !svnAudit.isZh",
           "group": "6_ai@1"
@@ -400,6 +430,26 @@
           "command": "svnAudit.addComment.zh",
           "when": "resourceScheme == 'svn-audit' && svnAudit.isZh",
           "group": "svnAudit@1"
+        },
+        {
+          "command": "svnAudit.editComment",
+          "when": "resourceScheme == 'svn-audit' && !svnAudit.isZh",
+          "group": "svnAudit@2"
+        },
+        {
+          "command": "svnAudit.editComment.zh",
+          "when": "resourceScheme == 'svn-audit' && svnAudit.isZh",
+          "group": "svnAudit@2"
+        },
+        {
+          "command": "svnAudit.deleteComment",
+          "when": "resourceScheme == 'svn-audit' && !svnAudit.isZh",
+          "group": "svnAudit@3"
+        },
+        {
+          "command": "svnAudit.deleteComment.zh",
+          "when": "resourceScheme == 'svn-audit' && svnAudit.isZh",
+          "group": "svnAudit@3"
         }
       ]
     },
