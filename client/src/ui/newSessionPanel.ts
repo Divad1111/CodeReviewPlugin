@@ -7,13 +7,31 @@
 import * as vscode from 'vscode';
 import { StorageContext } from '../storage/storageContext';
 
+export type NewSessionPanelMessage =
+  | {
+      command: 'submit';
+      data: {
+        name: string;
+        repoUrl: string;
+        authors: string;
+        startDate: string;
+        endDate: string;
+        logKeywords?: string;
+      };
+    }
+  | {
+      command: 'deleteHistory';
+      type: 'repo_url' | 'author';
+      value: string;
+    };
+
 /**
  * Create and show the New Session webview panel.
  * Returns a disposable panel; communicates back via onDidReceiveMessage.
  */
 export function createNewSessionPanel(
   extensionUri: vscode.Uri,
-  onSubmit: (data: { name: string; repoUrl: string; authors: string; startDate: string; endDate: string }) => void
+  onSubmit: (message: NewSessionPanelMessage) => void
 ): vscode.WebviewPanel {
   const panel = vscode.window.createWebviewPanel(
     'svnAuditNewSession',
@@ -45,13 +63,13 @@ export function createNewSessionPanel(
 
   panel.webview.onDidReceiveMessage((message) => {
     if (message.command === 'submit') {
-      onSubmit(message.data);
+      onSubmit({ command: 'submit', data: message.data });
       panel.dispose();
     } else if (message.command === 'cancel') {
       panel.dispose();
     } else if (message.command === 'deleteHistory') {
       // Pass the delete command to the extension, but don't close the panel
-      onSubmit(message as any); 
+      onSubmit({ command: 'deleteHistory', type: message.type, value: message.value });
     }
   });
 
@@ -330,6 +348,11 @@ function getWebviewContent(
       <div class="error-msg" id="dateError">Start date must be before end date</div>
     </div>
 
+    <div class="form-group">
+      <label>Log Content Keywords <span class="hint">(optional, comma-separated, OR matching)</span></label>
+      <input type="text" id="logKeywords" placeholder="e.g. SG-123,BUGFIX" />
+    </div>
+
     <div class="btn-row">
       <button class="btn-secondary" id="cancelBtn">Cancel</button>
       <button class="btn-primary" id="submitBtn">Create Session</button>
@@ -435,6 +458,7 @@ function getWebviewContent(
       const repoUrl = document.getElementById('repoUrl').value.trim();
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
+      const logKeywords = document.getElementById('logKeywords').value.trim();
 
       // Validate
       let valid = true;
@@ -451,7 +475,7 @@ function getWebviewContent(
 
       vscode.postMessage({
         command: 'submit',
-        data: { name: sessionName, repoUrl, authors: tags.join(', '), startDate, endDate }
+        data: { name: sessionName, repoUrl, authors: tags.join(', '), startDate, endDate, logKeywords }
       });
     });
 
