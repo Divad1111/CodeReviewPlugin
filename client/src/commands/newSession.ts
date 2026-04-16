@@ -36,7 +36,7 @@ export async function newSessionCommand(
       .map((k: string) => k.trim().toLowerCase())
       .filter((k: string) => k.length > 0);
 
-    if (authors.length === 0 || !repoUrl) {
+    if (authors.length === 0 || !repoUrl || !startDate || !endDate) {
       vscode.window.showErrorMessage('Invalid inputs from the new session form.');
       return;
     }

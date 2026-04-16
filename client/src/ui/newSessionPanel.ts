@@ -13,7 +13,10 @@ import { StorageContext } from '../storage/storageContext';
  */
 export function createNewSessionPanel(
   extensionUri: vscode.Uri,
-  onSubmit: (data: { name?: string; repoUrl?: string; authors?: string; startDate?: string; endDate?: string; logKeywords?: string; command?: string; type?: string; value?: string }) => void
+  onSubmit: (data:
+    | { name: string; repoUrl: string; authors: string; startDate: string; endDate: string; logKeywords?: string }
+    | { command: 'deleteHistory'; type: string; value: string }
+  ) => void
 ): vscode.WebviewPanel {
   const panel = vscode.window.createWebviewPanel(
     'svnAuditNewSession',
