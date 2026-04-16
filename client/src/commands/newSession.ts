@@ -9,7 +9,7 @@ import { SvnService } from '../svn/svnService';
 import { aggregateByAuthor } from '../svn/mergeAlgorithm';
 import { StorageContext } from '../storage/storageContext';
 import { AuditTreeDataProvider } from '../ui/auditTreeProvider';
-import { createNewSessionPanel } from '../ui/newSessionPanel';
+import { createNewSessionPanel, NewSessionPanelMessage } from '../ui/newSessionPanel';
 
 export async function newSessionCommand(
   extensionUri: vscode.Uri,
@@ -20,16 +20,18 @@ export async function newSessionCommand(
 ): Promise<vscode.WebviewPanel | undefined> {
 
   // Open the webview panel for session config
-  return createNewSessionPanel(extensionUri, async (data) => {
-    const { command, name, repoUrl, authors: authorsStr, startDate, endDate, type, value, logKeywords: logKeywordsStr } = data as any;
+  return createNewSessionPanel(extensionUri, async (message: NewSessionPanelMessage) => {
+    const { command } = message;
 
     const provider = StorageContext.getProvider();
 
     if (command === 'deleteHistory') {
+      const { type, value } = message;
       await provider.deleteHistory(type, value);
       return;
     }
 
+    const { name, repoUrl, authors: authorsStr, startDate, endDate, logKeywords: logKeywordsStr } = message.data;
     const authors = authorsStr.split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0);
     const logKeywords = (logKeywordsStr || '')
       .split(',')

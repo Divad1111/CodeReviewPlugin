@@ -7,16 +7,31 @@
 import * as vscode from 'vscode';
 import { StorageContext } from '../storage/storageContext';
 
+export type NewSessionPanelMessage =
+  | {
+      command: 'submit';
+      data: {
+        name: string;
+        repoUrl: string;
+        authors: string;
+        startDate: string;
+        endDate: string;
+        logKeywords?: string;
+      };
+    }
+  | {
+      command: 'deleteHistory';
+      type: 'repo_url' | 'author';
+      value: string;
+    };
+
 /**
  * Create and show the New Session webview panel.
  * Returns a disposable panel; communicates back via onDidReceiveMessage.
  */
 export function createNewSessionPanel(
   extensionUri: vscode.Uri,
-  onSubmit: (data:
-    | { name: string; repoUrl: string; authors: string; startDate: string; endDate: string; logKeywords?: string }
-    | { command: 'deleteHistory'; type: string; value: string }
-  ) => void
+  onSubmit: (message: NewSessionPanelMessage) => void
 ): vscode.WebviewPanel {
   const panel = vscode.window.createWebviewPanel(
     'svnAuditNewSession',
@@ -48,13 +63,13 @@ export function createNewSessionPanel(
 
   panel.webview.onDidReceiveMessage((message) => {
     if (message.command === 'submit') {
-      onSubmit(message.data);
+      onSubmit({ command: 'submit', data: message.data });
       panel.dispose();
     } else if (message.command === 'cancel') {
       panel.dispose();
     } else if (message.command === 'deleteHistory') {
       // Pass the delete command to the extension, but don't close the panel
-      onSubmit(message as any); 
+      onSubmit({ command: 'deleteHistory', type: message.type, value: message.value });
     }
   });
 
