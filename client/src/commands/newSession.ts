@@ -21,7 +21,7 @@ export async function newSessionCommand(
 
   // Open the webview panel for session config
   return createNewSessionPanel(extensionUri, async (data) => {
-    const { command, name, repoUrl, authors: authorsStr, startDate, endDate, type, value } = data as any;
+    const { command, name, repoUrl, authors: authorsStr, startDate, endDate, type, value, logKeywords: logKeywordsStr } = data as any;
 
     const provider = StorageContext.getProvider();
 
@@ -31,6 +31,10 @@ export async function newSessionCommand(
     }
 
     const authors = authorsStr.split(',').map((a: string) => a.trim()).filter((a: string) => a.length > 0);
+    const logKeywords = (logKeywordsStr || '')
+      .split(',')
+      .map((k: string) => k.trim().toLowerCase())
+      .filter((k: string) => k.length > 0);
 
     if (authors.length === 0 || !repoUrl) {
       vscode.window.showErrorMessage('Invalid inputs from the new session form.');
@@ -63,10 +67,18 @@ export async function newSessionCommand(
           progress.report({ message: 'Querying SVN log...', increment: 10 });
 
           const logEntries = await svnService.getLog(repoUrl, startDate, endDate);
+          const filteredLogEntries = logKeywords.length > 0
+            ? logEntries.filter(entry => {
+                const msg = (entry.message || '').toLowerCase();
+                return logKeywords.some((keyword: string) => msg.includes(keyword));
+              })
+            : logEntries;
 
-          if (logEntries.length === 0) {
+          if (filteredLogEntries.length === 0) {
             vscode.window.showWarningMessage(
-              'No SVN log entries found for the given date range.'
+              logKeywords.length > 0
+                ? `No SVN log entries found for the given filters (date range + log keywords: ${logKeywords.join(', ')}).`
+                : 'No SVN log entries found for the given date range.'
             );
             return;
           }
@@ -74,7 +86,7 @@ export async function newSessionCommand(
           progress.report({ message: 'Aggregating changes...', increment: 40 });
 
           // Aggregate by author
-          const authorMap = aggregateByAuthor(logEntries, authors);
+          const authorMap = aggregateByAuthor(filteredLogEntries, authors);
 
           if (authorMap.size === 0) {
             vscode.window.showWarningMessage(

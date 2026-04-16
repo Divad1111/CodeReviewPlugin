@@ -13,7 +13,7 @@ import { StorageContext } from '../storage/storageContext';
  */
 export function createNewSessionPanel(
   extensionUri: vscode.Uri,
-  onSubmit: (data: { name: string; repoUrl: string; authors: string; startDate: string; endDate: string }) => void
+  onSubmit: (data: { name?: string; repoUrl?: string; authors?: string; startDate?: string; endDate?: string; logKeywords?: string; command?: string; type?: string; value?: string }) => void
 ): vscode.WebviewPanel {
   const panel = vscode.window.createWebviewPanel(
     'svnAuditNewSession',
@@ -330,6 +330,11 @@ function getWebviewContent(
       <div class="error-msg" id="dateError">Start date must be before end date</div>
     </div>
 
+    <div class="form-group">
+      <label>Log Content Keywords <span class="hint">(optional, comma-separated, OR matching)</span></label>
+      <input type="text" id="logKeywords" placeholder="e.g. SG-123,BUGFIX" />
+    </div>
+
     <div class="btn-row">
       <button class="btn-secondary" id="cancelBtn">Cancel</button>
       <button class="btn-primary" id="submitBtn">Create Session</button>
@@ -435,6 +440,7 @@ function getWebviewContent(
       const repoUrl = document.getElementById('repoUrl').value.trim();
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
+      const logKeywords = document.getElementById('logKeywords').value.trim();
 
       // Validate
       let valid = true;
@@ -451,7 +457,7 @@ function getWebviewContent(
 
       vscode.postMessage({
         command: 'submit',
-        data: { name: sessionName, repoUrl, authors: tags.join(', '), startDate, endDate }
+        data: { name: sessionName, repoUrl, authors: tags.join(', '), startDate, endDate, logKeywords }
       });
     });
 

@@ -390,6 +390,7 @@ async function showLoginPanel(
         } else if (result.mode === 'login') {
           // --- Server Login ---
           const state = await authManager.login(result.serverUrl!, result.username!, result.password!);
+          await authManager.saveCredentials(result.serverUrl!, result.username!, result.password!);
           const remoteProvider = new RemoteStorageProvider(state.serverUrl!, state.token!);
           StorageContext.setProvider(remoteProvider);
           updateAuthContext();
@@ -406,6 +407,7 @@ async function showLoginPanel(
         } else if (result.mode === 'register') {
           // --- Register ---
           await authManager.register(result.serverUrl!, result.username!, result.password!);
+          await authManager.saveCredentials(result.serverUrl!, result.username!, result.password!);
           const settings = await getSettingsSafe();
           const L = getLocalization(settings?.language);
           vscode.window.showInformationMessage(L.registerSuccess);
